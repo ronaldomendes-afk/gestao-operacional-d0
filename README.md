@@ -1,0 +1,1 @@
+# gestao-operacional-d0
