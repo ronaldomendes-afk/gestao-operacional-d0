@@ -1560,9 +1560,11 @@ function crossData() {
         const hubId   = (parts[2] || '').trim();
         const status  = String(row['Status Rota'] || '').trim() || null;
         const evolucao = parseInt(String(row['Evolução (Nº)'] || '0').replace(',','.')) || 0;
-        const transp  = String(row['Transportador'] || '').trim();
-        const placa   = String(row['Placa | Perfil'] || '').split('|')[0].trim();
-        logMap[rid] = { status, evolucao, tipoRaw, hubId, transp, placa };
+        const transp       = String(row['Transportador'] || '').trim();
+        const placa        = String(row['Placa | Perfil'] || '').split('|')[0].trim();
+        const pontualidade = String(row['Pontualidade'] || '').trim();
+        const motivo       = String(row['Motivo'] || '').trim();
+        logMap[rid] = { status, evolucao, tipoRaw, hubId, transp, placa, pontualidade, motivo };
       });
     }
     const hasLog = Object.keys(logMap).length > 0;
@@ -1661,7 +1663,9 @@ function crossData() {
       const pendStops = r.pendingStops  || 0;
 
       if (!hubMap[hub]) hubMap[hub] = { routes: [], placas: new Set(), placasFin: new Set() };
-      hubMap[hub].routes.push({ id: rid, placa, perfil, status: finalStatus, transp, est, col, pend: Math.max(0, est - col), motorista, desempenho: desempenhoFinal, atraso_pct, tipoRota, totStops, falhas, pendStops, evolucao });
+      const pontualidade = (logD && logD.pontualidade) ? logD.pontualidade : '';
+      const motivo       = (logD && logD.motivo)       ? logD.motivo       : '';
+      hubMap[hub].routes.push({ id: rid, placa, perfil, status: finalStatus, transp, est, col, pend: Math.max(0, est - col), motorista, desempenho: desempenhoFinal, atraso_pct, tipoRota, totStops, falhas, pendStops, evolucao, pontualidade, motivo });
       if (placa) { hubMap[hub].placas.add(placa); if (status === 'Concluída') hubMap[hub].placasFin.add(placa); }
     });
 
@@ -2303,13 +2307,34 @@ function openDriverDetail(nome, isTransp) {
       const pct  = r.totStops > 0 ? ((r.falhas||0)/r.totStops*100).toFixed(0) : 0;
       const barW = Math.min(100, pct);
       const barC = pct > 30 ? '#ef4444' : pct > 10 ? '#f59e0b' : '#22c55e';
+
+      // ── Pontualidade: classificar pontos antecipados / atrasados / no prazo ──
+      const pont = (r.pontualidade || '').trim().toLowerCase();
+      let pontLabel = '', pontColor = '#7a8aaa', pontIcon = '';
+      if (pont === 'antecipado' || pont === 'antecipada') {
+        pontLabel = 'Antecipado'; pontColor = '#22c55e'; pontIcon = '⬆';
+      } else if (pont === 'atrasado' || pont === 'atrasada') {
+        pontLabel = 'Atrasado'; pontColor = '#ef4444'; pontIcon = '⬇';
+      } else if (pont === 'no prazo' || pont === 'no_prazo' || pont === 'pontual') {
+        pontLabel = 'No prazo'; pontColor = '#3b82f6'; pontIcon = '✓';
+      } else if (pont) {
+        pontLabel = r.pontualidade; pontColor = '#f59e0b'; pontIcon = '◉';
+      }
+
+      // ── Motivo: exibir apenas se preenchido ──
+      const motivoTxt = (r.motivo || '').trim();
+
+      // ── Badge de pontualidade ──
+      const pontBadge = pontLabel ? `<span style="font-size:9px;padding:1px 7px;border-radius:10px;background:${pontColor}22;color:${pontColor};border:1px solid ${pontColor}44;font-weight:700">${pontIcon} ${pontLabel}</span>` : '';
+
       return `<div style="background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:10px 14px;
-                          ${ofen>0?'border-left:3px solid #ef4444;':''}">
+                          ${ofen>0?'border-left:3px solid #ef4444;':pont==='atrasado'||pont==='atrasada'?'border-left:3px solid #f59e0b;':''}">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">
           <span style="font-family:'DM Mono',monospace;font-size:11px;font-weight:600;color:var(--t2)">#${r.id}</span>
           <span style="font-size:10px;color:var(--t1);font-weight:600">${r.hub}</span>
           ${stBadge(r.status)}
           ${perfBadge(r.desempenho)}
+          ${pontBadge}
           ${r.placa ? `<span style="font-size:9px;color:var(--t3)">${r.placa}</span>` : ''}
           <span style="margin-left:auto;font-size:9px;background:var(--s3);color:var(--t3);padding:1px 7px;border-radius:6px">${r.tipoRota||''}</span>
         </div>
@@ -2320,11 +2345,16 @@ function openDriverDetail(nome, isTransp) {
           <div style="font-size:10px"><span style="color:var(--t3)">Pend. paradas: </span><strong style="color:#f59e0b">${r.pendStops||0}</strong></div>
         </div>
         ${r.totStops > 0 ? `
-        <div style="display:flex;align-items:center;gap:6px">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:${motivoTxt?'6px':'0'}">
           <div style="flex:1;height:5px;border-radius:3px;background:var(--s3);overflow:hidden">
             <div style="height:100%;width:${barW}%;background:${barC};border-radius:3px;transition:width .6s ease"></div>
           </div>
           <span style="font-size:9px;font-family:'DM Mono',monospace;font-weight:700;color:${barC}">${pct}% falhas</span>
+        </div>` : ''}
+        ${motivoTxt ? `
+        <div style="margin-top:6px;padding:6px 10px;border-radius:6px;background:var(--s3);border-left:3px solid #f59e0b;display:flex;align-items:flex-start;gap:6px">
+          <span style="font-size:10px;color:#f59e0b;font-weight:700;flex-shrink:0">⚠ Motivo:</span>
+          <span style="font-size:10px;color:var(--t2);line-height:1.4">${motivoTxt}</span>
         </div>` : ''}
       </div>`;
     }).join('')}
