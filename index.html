@@ -356,6 +356,7 @@ td{padding:9px 12px;vertical-align:middle;white-space:nowrap}
     <span class="pill" id="src-col"  style="cursor:pointer" onclick="openImp()" title="Clique para importar">📦 Coletas <span id="src-col-st"  style="color:var(--red-t)">✗</span></span>
     <span class="pill" id="src-ext"  style="cursor:pointer" onclick="openImp()" title="Clique para importar">📋 Extração <span id="src-ext-st" style="color:var(--red-t)">✗</span></span>
     <button class="btn" onclick="openImp()"><svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Importar CSVs</button>
+    <button class="btn" id="btn-exportar" onclick="exportarDados()" style="display:none;background:var(--grn-t);color:#fff;border-color:var(--grn-t)"><svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Exportar Dados</button>
   </div>
 </header>
 
@@ -1727,6 +1728,7 @@ function crossData() {
     renderAll();
 
     monRoutes = null; csv2 = null;
+    document.getElementById('btn-exportar').style.display = 'none';
     document.getElementById('btn-cross').style.display = 'none';
     document.getElementById('cross-msg').textContent = '';
 
@@ -2261,6 +2263,9 @@ function safeRun(fn, label) {
 }
 
 function renderAll(){
+  // Mostrar botão exportar se houver dados carregados
+  const btnExp = document.getElementById('btn-exportar');
+  if (btnExp) btnExp.style.display = (monRoutes && monRoutes.length > 0) ? '' : 'none';
   safeRun(updateTotals,       'updateTotals');
   safeRun(updateKPIs,         'updateKPIs');
   safeRun(buildCharts,        'buildCharts');
@@ -2442,6 +2447,112 @@ setTimeout(() => {
   if (Object.keys(ROUTES).length === 0) openImp();
 }, 400);
 
+
+// ── Exportar Dados para distribuição ao time ──────────────────────────────
+function exportarDados() {
+  const hoje = new Date();
+  const data  = hoje.toISOString().slice(0,10);
+  const hora  = hoje.toTimeString().slice(0,5).replace(':','-');
+  const stamp = data + '_' + hora;
+
+  let exportados = 0;
+
+  // 1. Exportar JSON de Monitoramento
+  if (monRoutes && monRoutes.length > 0) {
+    const jsonStr = JSON.stringify({ routes: monRoutes }, null, 2);
+    _downloadArquivo('monitoramento_' + stamp + '.json', jsonStr, 'application/json');
+    exportados++;
+  }
+
+  // 2. Exportar CSV de Coletas (csv2)
+  if (csv2 && csv2.length > 0) {
+    const csvStr = _arrayParaCsv(csv2);
+    _downloadArquivo('logistics_packages_' + stamp + '.csv', csvStr, 'text/csv');
+    exportados++;
+  }
+
+  // 3. Exportar CSV de Extração (csv3)
+  if (csv3 && csv3.length > 0) {
+    const csvStr = _arrayParaCsv(csv3);
+    _downloadArquivo('extracao_logistics_' + stamp + '.csv', csvStr, 'text/csv');
+    exportados++;
+  }
+
+  if (exportados === 0) {
+    alert('Nenhum dado carregado para exportar. Importe os dados primeiro.');
+    return;
+  }
+
+  // Mostrar modal de instruções após exportar
+  _mostrarModalExport(exportados, stamp);
+}
+
+function _arrayParaCsv(arr) {
+  if (!arr || arr.length === 0) return '';
+  const headers = Object.keys(arr[0]);
+  const linhas  = arr.map(row =>
+    headers.map(h => {
+      const val = String(row[h] == null ? '' : row[h]);
+      return val.includes(',') || val.includes('"') || val.includes('\n')
+        ? '"' + val.replace(/"/g, '""') + '"'
+        : val;
+    }).join(',')
+  );
+  return [headers.join(','), ...linhas].join('\n');
+}
+
+function _downloadArquivo(nome, conteudo, tipo) {
+  const blob = new Blob([conteudo], { type: tipo + ';charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = nome;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function _mostrarModalExport(qtd, stamp) {
+  // Criar modal de instrução
+  const existing = document.getElementById('m-export');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'm-export';
+  modal.style.cssText = 'position:fixed;inset:0;background:#0009;z-index:9999;display:flex;align-items:center;justify-content:center';
+  modal.innerHTML = `
+    <div style="background:var(--s1);border:1px solid var(--bd);border-radius:16px;padding:28px;max-width:480px;width:90%;box-shadow:0 20px 60px #0006">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+        <span style="font-size:24px">✅</span>
+        <div>
+          <div style="font-size:15px;font-weight:700;color:var(--t1)">${qtd} arquivo${qtd>1?'s':''} exportado${qtd>1?'s':''}</div>
+          <div style="font-size:11px;color:var(--t3)">Dados de ${stamp.replace('_',' às ').replace('-',':')}</div>
+        </div>
+      </div>
+      <div style="background:var(--s2);border-radius:10px;padding:14px;margin-bottom:16px">
+        <div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Como compartilhar com o time</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;gap:8px;align-items:flex-start">
+            <span style="font-size:14px;flex-shrink:0">1️⃣</span>
+            <span style="font-size:11px;color:var(--t2)">Suba os arquivos baixados na pasta compartilhada do time (OneDrive, SharePoint ou Teams)</span>
+          </div>
+          <div style="display:flex;gap:8px;align-items:flex-start">
+            <span style="font-size:14px;flex-shrink:0">2️⃣</span>
+            <span style="font-size:11px;color:var(--t2)">Envie o link do painel para o time: <strong style="color:var(--blu-t)">ronaldomendes-afk.github.io/gestao-operacional-d0</strong></span>
+          </div>
+          <div style="display:flex;gap:8px;align-items:flex-start">
+            <span style="font-size:14px;flex-shrink:0">3️⃣</span>
+            <span style="font-size:11px;color:var(--t2)">O time abre o painel, clica em <strong>Importar CSVs</strong> e carrega os arquivos da pasta compartilhada</span>
+          </div>
+        </div>
+      </div>
+      <button onclick="document.getElementById('m-export').remove()" style="width:100%;padding:10px;border-radius:8px;background:var(--grn-t);color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer">Entendido ✓</button>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+}
+// ─────────────────────────────────────────────────────────────────────────────
 </script>
 
 <!-- MODAL DETALHE MOTORISTA -->
