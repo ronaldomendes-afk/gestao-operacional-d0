@@ -1577,9 +1577,14 @@ function crossData() {
       if (tipoCol !== 'XD' || tipoPar !== 'Vendedor') return;
       const rid = String(row['ID do Rota'] || '').trim();
       if (!rid) return;
-      if (!pkgAgg[rid]) pkgAgg[rid] = { est: 0, col: 0 };
+      if (!pkgAgg[rid]) pkgAgg[rid] = { est: 0, col: 0, pontualidades: [], motivos: [] };
       pkgAgg[rid].est += parseFloat(row['Pacotes estimados'] || 0) || 0;
       pkgAgg[rid].col += parseFloat(row['Pacotes coletados'] || 0) || 0;
+      // Coletar pontualidade e motivo por parada
+      const pont = String(row['Pontualidade'] || '').trim();
+      const mot  = String(row['Motivo']       || '').trim();
+      if (pont) pkgAgg[rid].pontualidades.push(pont);
+      if (mot && !pkgAgg[rid].motivos.includes(mot)) pkgAgg[rid].motivos.push(mot);
     });
 
     // ── Filtrar rotas XD do Monitoramento ──
@@ -1663,9 +1668,22 @@ function crossData() {
       const pendStops = r.pendingStops  || 0;
 
       if (!hubMap[hub]) hubMap[hub] = { routes: [], placas: new Set(), placasFin: new Set() };
-      const pontualidade = (logD && logD.pontualidade) ? logD.pontualidade : '';
-      const motivo       = (logD && logD.motivo)       ? logD.motivo       : '';
-      hubMap[hub].routes.push({ id: rid, placa, perfil, status: finalStatus, transp, est, col, pend: Math.max(0, est - col), motorista, desempenho: desempenhoFinal, atraso_pct, tipoRota, totStops, falhas, pendStops, evolucao, pontualidade, motivo });
+      // Pontualidade: classificar paradas do csv2 (early/late/on_time)
+      const pkgPont = pkg ? (pkg.pontualidades || []) : [];
+      const cntEarly  = pkgPont.filter(p => p.toLowerCase().includes('early')).length;
+      const cntLate   = pkgPont.filter(p => p.toLowerCase().includes('late')).length;
+      const cntOnTime = pkgPont.filter(p => p.toLowerCase().includes('on_time')).length;
+      // Status dominante da rota
+      let pontualidade = '';
+      if (pkgPont.length > 0) {
+        if (cntLate > 0 && cntLate >= cntEarly) pontualidade = cntLate + 'x Atrasado';
+        else if (cntEarly > 0) pontualidade = cntEarly + 'x Antecipado';
+        else pontualidade = cntOnTime + 'x No prazo';
+      }
+      const motivo = pkg ? (pkg.motivos || []).join(' | ') : '';
+      // Detalhes de paradas para o modal
+      const pontDetails = { early: cntEarly, late: cntLate, onTime: cntOnTime, total: pkgPont.length };
+      hubMap[hub].routes.push({ id: rid, placa, perfil, status: finalStatus, transp, est, col, pend: Math.max(0, est - col), motorista, desempenho: desempenhoFinal, atraso_pct, tipoRota, totStops, falhas, pendStops, evolucao, pontualidade, motivo, pontDetails });
       if (placa) { hubMap[hub].placas.add(placa); if (status === 'Concluída') hubMap[hub].placasFin.add(placa); }
     });
 
@@ -2308,17 +2326,20 @@ function openDriverDetail(nome, isTransp) {
       const barW = Math.min(100, pct);
       const barC = pct > 30 ? '#ef4444' : pct > 10 ? '#f59e0b' : '#22c55e';
 
-      // ── Pontualidade: classificar pontos antecipados / atrasados / no prazo ──
-      const pont = (r.pontualidade || '').trim().toLowerCase();
+      // ── Pontualidade: contagem real de paradas (early/late/on_time) ──
+      const pd = r.pontDetails || { early: 0, late: 0, onTime: 0, total: 0 };
       let pontLabel = '', pontColor = '#7a8aaa', pontIcon = '';
-      if (pont === 'antecipado' || pont === 'antecipada') {
-        pontLabel = 'Antecipado'; pontColor = '#22c55e'; pontIcon = '⬆';
-      } else if (pont === 'atrasado' || pont === 'atrasada') {
-        pontLabel = 'Atrasado'; pontColor = '#ef4444'; pontIcon = '⬇';
-      } else if (pont === 'no prazo' || pont === 'no_prazo' || pont === 'pontual') {
-        pontLabel = 'No prazo'; pontColor = '#3b82f6'; pontIcon = '✓';
-      } else if (pont) {
-        pontLabel = r.pontualidade; pontColor = '#f59e0b'; pontIcon = '◉';
+      if (pd.total > 0) {
+        if (pd.late > 0 && pd.late >= pd.early) {
+          pontLabel = pd.late + ' atrasada' + (pd.late > 1 ? 's' : '');
+          pontColor = '#ef4444'; pontIcon = '⬇';
+        } else if (pd.early > 0) {
+          pontLabel = pd.early + ' antecipada' + (pd.early > 1 ? 's' : '');
+          pontColor = '#22c55e'; pontIcon = '⬆';
+        } else {
+          pontLabel = pd.onTime + ' no prazo';
+          pontColor = '#3b82f6'; pontIcon = '✓';
+        }
       }
 
       // ── Motivo: exibir apenas se preenchido ──
@@ -2350,6 +2371,12 @@ function openDriverDetail(nome, isTransp) {
             <div style="height:100%;width:${barW}%;background:${barC};border-radius:3px;transition:width .6s ease"></div>
           </div>
           <span style="font-size:9px;font-family:'DM Mono',monospace;font-weight:700;color:${barC}">${pct}% falhas</span>
+        </div>` : ''}
+        ${pd.total > 0 ? `
+        <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">
+          ${pd.early  > 0 ? `<span style="font-size:9px;padding:2px 7px;border-radius:8px;background:#22c55e22;color:#22c55e;border:1px solid #22c55e44;font-weight:700">⬆ ${pd.early} antecipada${pd.early>1?'s':''}</span>` : ''}
+          ${pd.late   > 0 ? `<span style="font-size:9px;padding:2px 7px;border-radius:8px;background:#ef444422;color:#ef4444;border:1px solid #ef444444;font-weight:700">⬇ ${pd.late} atrasada${pd.late>1?'s':''}</span>` : ''}
+          ${pd.onTime > 0 ? `<span style="font-size:9px;padding:2px 7px;border-radius:8px;background:#3b82f622;color:#3b82f6;border:1px solid #3b82f644;font-weight:700">✓ ${pd.onTime} no prazo</span>` : ''}
         </div>` : ''}
         ${motivoTxt ? `
         <div style="margin-top:6px;padding:6px 10px;border-radius:6px;background:var(--s3);border-left:3px solid #f59e0b;display:flex;align-items:flex-start;gap:6px">
