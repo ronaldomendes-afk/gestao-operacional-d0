@@ -1588,10 +1588,11 @@ function crossData() {
       // Guardar paradas individuais (apenas atrasadas e antecipadas)
       const pontLower = pont.toLowerCase();
       if (pontLower.includes('late') || pontLower.includes('early')) {
-        const parada = String(row['Parada'] || row['ID de Parada'] || '').trim();
-        const hora   = pont.includes(' - ') ? pont.split(' - ')[0].trim() : '';
-        const tipo   = pontLower.includes('late') ? 'late' : 'early';
-        pkgAgg[rid].paradas.push({ parada, hora, tipo, mot });
+        const parada    = String(row['Parada'] || row['ID de Parada'] || '').trim();
+        const nomeRota  = String(row['Nome da Rota'] || '').trim();
+        const hora      = pont.includes(' - ') ? pont.split(' - ')[0].trim() : '';
+        const tipo      = pontLower.includes('late') ? 'late' : 'early';
+        pkgAgg[rid].paradas.push({ parada, nomeRota, hora, tipo, mot });
       }
     });
 
@@ -2392,6 +2393,7 @@ function openDriverDetail(nome, isTransp) {
               <span style="font-size:9px;font-family:'DM Mono',monospace;font-weight:700;color:${cor};flex-shrink:0">${icon} ${p.hora}</span>
               <div style="flex:1;min-width:0">
                 <div style="font-size:9px;font-weight:600;color:var(--t2)">${label}${p.parada ? ' · ' + p.parada : ''}</div>
+                ${p.nomeRota ? `<div style="font-size:9px;color:var(--t3);margin-top:1px">🔁 Rota: ${p.nomeRota}</div>` : ''}
                 ${p.mot ? `<div style="font-size:9px;color:#f59e0b;margin-top:1px">⚠ ${p.mot}</div>` : ''}
               </div>
             </div>`;
