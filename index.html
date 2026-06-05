@@ -1589,7 +1589,9 @@ function crossData() {
       const pontLower = pont.toLowerCase();
       if (pontLower.includes('late') || pontLower.includes('early')) {
         const parada    = String(row['Parada'] || row['ID de Parada'] || '').trim();
-        const nomeRota  = String(row['Nome da Rota'] || '').trim();
+        // Coluna B = Nome da Rota (índice 1 como fallback)
+        const _cols = Object.values(row);
+        const nomeRota = String(row['Nome da Rota'] || row['Nome da rota'] || row['nome da rota'] || _cols[1] || '').trim();
         const hora      = pont.includes(' - ') ? pont.split(' - ')[0].trim() : '';
         const tipo      = pontLower.includes('late') ? 'late' : 'early';
         pkgAgg[rid].paradas.push({ parada, nomeRota, hora, tipo, mot });
