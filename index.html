@@ -1726,12 +1726,20 @@ function crossData() {
     });
 
     closeM('m-imp');
+    // Guardar cópia para exportação antes do reset
+    window._exportData = {
+      monRoutes: monRoutes ? JSON.parse(JSON.stringify(monRoutes)) : null,
+      csv2: csv2 ? csv2.slice() : null,
+      csv3: csv3 ? csv3.slice() : null
+    };
     renderAll();
 
     monRoutes = null; csv2 = null;
-    document.getElementById('btn-exportar').style.display = 'none';
     document.getElementById('btn-cross').style.display = 'none';
     document.getElementById('cross-msg').textContent = '';
+    // Mostrar botão exportar se tiver dados salvos
+    const btnExp = document.getElementById('btn-exportar');
+    if (btnExp) btnExp.style.display = (window._exportData && window._exportData.monRoutes) ? '' : 'none';
 
   } catch(e) {
     msg.textContent = 'Erro ao cruzar: ' + e.message + (e.stack ? ' | '+e.stack.split('\n')[1] : '');
@@ -2461,23 +2469,25 @@ function exportarDados() {
 
   let exportados = 0;
 
+  const ed = window._exportData || {};
+
   // 1. Exportar JSON de Monitoramento
-  if (monRoutes && monRoutes.length > 0) {
-    const jsonStr = JSON.stringify({ routes: monRoutes }, null, 2);
+  if (ed.monRoutes && ed.monRoutes.length > 0) {
+    const jsonStr = JSON.stringify({ routes: ed.monRoutes }, null, 2);
     _downloadArquivo('monitoramento_' + stamp + '.json', jsonStr, 'application/json');
     exportados++;
   }
 
   // 2. Exportar CSV de Coletas (csv2)
-  if (csv2 && csv2.length > 0) {
-    const csvStr = _arrayParaCsv(csv2);
+  if (ed.csv2 && ed.csv2.length > 0) {
+    const csvStr = _arrayParaCsv(ed.csv2);
     _downloadArquivo('logistics_packages_' + stamp + '.csv', csvStr, 'text/csv');
     exportados++;
   }
 
   // 3. Exportar CSV de Extração (csv3)
-  if (csv3 && csv3.length > 0) {
-    const csvStr = _arrayParaCsv(csv3);
+  if (ed.csv3 && ed.csv3.length > 0) {
+    const csvStr = _arrayParaCsv(ed.csv3);
     _downloadArquivo('extracao_logistics_' + stamp + '.csv', csvStr, 'text/csv');
     exportados++;
   }
