@@ -1534,6 +1534,7 @@ function chkBoth() {
     msg.textContent = 'Fontes prontas' + extTxt + '. Clique em Cruzar.';
     msg.className = 'fi ok';
     btn.style.display = 'inline-flex';
+    atualizarBtnExportar();
   } else if (monRoutes) {
     msg.textContent = 'Monitoramento OK. Carregue o CSV de Coletas.';
     msg.className = 'fi';
@@ -2262,10 +2263,13 @@ function safeRun(fn, label) {
   catch(e) { console.warn('[' + label + '] erro:', e.message, e.stack); }
 }
 
-function renderAll(){
-  // Mostrar botão exportar se houver dados carregados
+function atualizarBtnExportar() {
   const btnExp = document.getElementById('btn-exportar');
   if (btnExp) btnExp.style.display = (monRoutes && monRoutes.length > 0) ? '' : 'none';
+}
+
+function renderAll(){
+  atualizarBtnExportar();
   safeRun(updateTotals,       'updateTotals');
   safeRun(updateKPIs,         'updateKPIs');
   safeRun(buildCharts,        'buildCharts');
