@@ -470,6 +470,13 @@ td{padding:9px 12px;vertical-align:middle;white-space:nowrap}
   </div>
 </div>
 
+<!-- GRÁFICO PENDENTES POR HUB x TRANSPORTADORA -->
+<div class="panel fi-anim" style="margin-bottom:16px">
+  <div class="panel-title">Pacotes pendentes por HUB e Transportadora — top 10 HUBs</div>
+  <div class="panel-sub">Distribuição dos pacotes não coletados por transportadora em cada HUB · clique na legenda para filtrar</div>
+  <div class="ch-wrap" style="height:320px"><canvas id="ch-pend-transp"></canvas></div>
+</div>
+
 <!-- MAPA -->
 <div class="map-panel fi-anim" id="hub-grid-panel">
   <div class="sec-hdr">
@@ -1095,6 +1102,80 @@ function buildPend(){
   if(!HUBS.length) return;
   const d=[...HUBS].sort((a,b)=>b.pkg_pend-a.pkg_pend).slice(0,10);
   if(charts.pend)charts.pend.destroy();
+  // ── Gráfico Pendentes por HUB x Transportadora ──────────────────────────
+  if (document.getElementById('ch-pend-transp')) {
+    // Agregar pendentes por HUB e Transportadora a partir das rotas
+    const hubTranspMap = {};
+    const allTransps = new Set();
+    HUBS.slice(0,10).forEach(h => { hubTranspMap[h.hub] = {}; });
+
+    // Varrer hubMap para pegar pend por transp
+    if (typeof hubMapGlobal !== 'undefined' && hubMapGlobal) {
+      Object.entries(hubMapGlobal).forEach(([hub, d]) => {
+        if (!hubTranspMap[hub]) return;
+        d.routes.forEach(r => {
+          if (!r.transp) return;
+          const t = r.transp.length > 18 ? r.transp.slice(0,18)+'…' : r.transp;
+          allTransps.add(t);
+          hubTranspMap[hub][t] = (hubTranspMap[hub][t] || 0) + (r.pend || 0);
+        });
+      });
+    }
+
+    const top10Hubs = HUBS.slice(0,10).map(h => h.hub);
+    const transpList = [...allTransps].sort((a,b) => {
+      const sumA = top10Hubs.reduce((s,h) => s + (hubTranspMap[h]?.[a]||0), 0);
+      const sumB = top10Hubs.reduce((s,h) => s + (hubTranspMap[h]?.[b]||0), 0);
+      return sumB - sumA;
+    }).slice(0,8); // top 8 transportadoras
+
+    const COLORS = ['#3b82f6','#f59e0b','#ef4444','#22c55e','#a855f7','#06b6d4','#f97316','#ec4899'];
+
+    const datasets = transpList.map((t, i) => ({
+      label: t,
+      data: top10Hubs.map(hub => hubTranspMap[hub]?.[t] || 0),
+      backgroundColor: COLORS[i % COLORS.length] + 'cc',
+      borderColor: COLORS[i % COLORS.length],
+      borderWidth: 1, borderRadius: 4, borderSkipped: false,
+    }));
+
+    if (charts.pendTransp) { charts.pendTransp.destroy(); }
+    charts.pendTransp = new Chart(document.getElementById('ch-pend-transp'), {
+      type: 'bar',
+      data: { labels: top10Hubs, datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        animation: { duration: 800, easing: 'easeOutBack' },
+        plugins: {
+          legend: {
+            display: true, position: 'bottom',
+            labels: { color: '#b0bdd6', font: { size: 10 }, boxWidth: 12, padding: 12 }
+          },
+          datalabels: { display: false },
+          tooltip: {
+            mode: 'index', intersect: false,
+            callbacks: {
+              label: ctx => ' ' + ctx.dataset.label + ': ' + fmt(ctx.raw) + ' pkgs'
+            }
+          }
+        },
+        scales: {
+          x: {
+            stacked: true,
+            grid: { color: '#252e42' },
+            ticks: { color: '#b0bdd6', font: { family: "'DM Mono',monospace", size: 9 } }
+          },
+          y: {
+            stacked: true,
+            grid: { color: '#252e42' },
+            ticks: { color: '#b0bdd6', callback: v => fmt(v) }
+          }
+        }
+      }
+    });
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   charts.pend=new Chart(document.getElementById('ch-pend'),{
     type:'bar',
     data:{labels:d.map(h=>h.hub),datasets:[{
@@ -1454,7 +1535,7 @@ function procMonJSON() {
     const data = JSON.parse(txt);
     const routes = data.routes || data;
     if (!Array.isArray(routes)) throw new Error('JSON inválido — array de rotas não encontrado.');
-    monRoutes = routes;
+    window._rawMonRoutes = routes; monRoutes = routes;
     info.textContent = '✓ ' + routes.length.toLocaleString('pt-BR') + ' rotas carregadas do Monitoramento';
     const jSt = document.getElementById('src-json-st');
     if(jSt){ jSt.textContent='✓'; jSt.style.color='var(--grn-t)'; }
@@ -1477,7 +1558,7 @@ function loadMonFile(inp) {
       const data = JSON.parse(e.target.result);
       const routes = data.routes || data;
       if (!Array.isArray(routes)) throw new Error('Formato inválido.');
-      monRoutes = routes;
+      window._rawMonRoutes = routes; monRoutes = routes;
       info.textContent = '✓ ' + routes.length.toLocaleString('pt-BR') + ' rotas carregadas';
       info.className = 'fi ok';
       const jSt3 = document.getElementById('src-json-st');
@@ -1497,7 +1578,7 @@ function loadPkg(inp) {
   const info = document.getElementById('fi2-info');
   info.textContent = 'Lendo…'; info.className = 'fi';
   Papa.parse(f, { header: true, skipEmptyLines: true, complete: r => {
-    csv2 = r.data;
+    window._rawCsv2 = r.data; csv2 = r.data;
     const xd = r.data.filter(row => String(row['Tipo de colecta'] || '').toUpperCase().trim() === 'XD');
     info.textContent = '✓ ' + r.data.length.toLocaleString('pt-BR') + ' linhas · ' + xd.length.toLocaleString('pt-BR') + ' XD';
     const cSt = document.getElementById('src-col-st');
@@ -1513,7 +1594,7 @@ function loadExt(inp) {
   const nm   = document.getElementById('fi3-name');
   info.textContent = 'Lendo…'; info.className = 'fi';
   Papa.parse(f, { header: true, skipEmptyLines: true, complete: r => {
-    csv3 = r.data;
+    window._rawCsv3 = r.data; csv3 = r.data;
     const conc = r.data.filter(row => (row['Status Rota']||'').trim() === 'Concluída').length;
     const and_ = r.data.filter(row => (row['Status Rota']||'').trim() === 'Em andamento').length;
     info.textContent = '✓ ' + r.data.length.toLocaleString('pt-BR') + ' rotas · ' + conc.toLocaleString('pt-BR') + ' Concluídas · ' + and_ + ' Em andamento';
@@ -1628,6 +1709,7 @@ function crossData() {
 
     // ── Agrupar por HUB ──
     const hubMap = {};
+    window.hubMapGlobal = hubMap; // expor para gráficos
     xdRoutes.forEach(r => {
       const hub = r.facilityId || '';
       if (!hub) return;
@@ -2469,25 +2551,26 @@ function exportarDados() {
 
   let exportados = 0;
 
-  const ed = window._exportData || {};
-
   // 1. Exportar JSON de Monitoramento
-  if (ed.monRoutes && ed.monRoutes.length > 0) {
-    const jsonStr = JSON.stringify({ routes: ed.monRoutes }, null, 2);
+  const rawMon = window._rawMonRoutes || (window._exportData && window._exportData.monRoutes);
+  if (rawMon && rawMon.length > 0) {
+    const jsonStr = JSON.stringify({ routes: rawMon }, null, 2);
     _downloadArquivo('monitoramento_' + stamp + '.json', jsonStr, 'application/json');
     exportados++;
   }
 
-  // 2. Exportar CSV de Coletas (csv2)
-  if (ed.csv2 && ed.csv2.length > 0) {
-    const csvStr = _arrayParaCsv(ed.csv2);
+  // 2. Exportar CSV de Coletas
+  const rawCsv2 = window._rawCsv2;
+  if (rawCsv2 && rawCsv2.length > 0) {
+    const csvStr = _arrayParaCsv(rawCsv2);
     _downloadArquivo('logistics_packages_' + stamp + '.csv', csvStr, 'text/csv');
     exportados++;
   }
 
-  // 3. Exportar CSV de Extração (csv3)
-  if (ed.csv3 && ed.csv3.length > 0) {
-    const csvStr = _arrayParaCsv(ed.csv3);
+  // 3. Exportar CSV de Extração
+  const rawCsv3 = window._rawCsv3;
+  if (rawCsv3 && rawCsv3.length > 0) {
+    const csvStr = _arrayParaCsv(rawCsv3);
     _downloadArquivo('extracao_logistics_' + stamp + '.csv', csvStr, 'text/csv');
     exportados++;
   }
