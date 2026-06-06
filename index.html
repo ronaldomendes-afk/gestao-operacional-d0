@@ -575,6 +575,18 @@ td{padding:9px 12px;vertical-align:middle;white-space:nowrap}
       <div class="ch-wrap" style="height:200px"><canvas id="ch-sla-win"></canvas></div>
     </div>
   </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+    <div class="panel">
+      <div class="panel-title">Pacotes pendentes por HUB</div>
+      <div class="panel-sub">Top 10 HUBs com maior volume não coletado</div>
+      <div class="ch-wrap" style="height:260px"><canvas id="ch-ofen-pend-hub"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Pacotes pendentes por Transportadora</div>
+      <div class="panel-sub">Top 10 transportadoras com maior volume não coletado</div>
+      <div class="ch-wrap" style="height:260px"><canvas id="ch-ofen-pend-transp"></canvas></div>
+    </div>
+  </div>
 </div>
 
 <!-- TABLE -->
@@ -2346,6 +2358,90 @@ function buildOfensorCharts(){
       }
     });
   }
+
+  // ── Gráfico: Pendentes por HUB (ofensores) ──────────────────────────────
+  if (document.getElementById('ch-ofen-pend-hub')) {
+    const topHubs = HUBS
+      .filter(h => h.pkg_pend > 0)
+      .sort((a, b) => b.pkg_pend - a.pkg_pend)
+      .slice(0, 10);
+    const hubColors = topHubs.map(h => {
+      const pct = h.perc_col;
+      return pct >= 85 ? '#22c55e' : pct >= 65 ? '#f59e0b' : '#ef4444';
+    });
+    if (charts.ofenPendHub) charts.ofenPendHub.destroy();
+    charts.ofenPendHub = new Chart(document.getElementById('ch-ofen-pend-hub'), {
+      type: 'bar',
+      data: {
+        labels: topHubs.map(h => h.hub),
+        datasets: [{
+          label: 'Pkgs pendentes',
+          data: topHubs.map(h => h.pkg_pend),
+          backgroundColor: hubColors.map(c => c + 'bb'),
+          borderColor: hubColors,
+          borderWidth: 2, borderRadius: 6, borderSkipped: false
+        }]
+      },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        animation: { duration: 700, easing: 'easeOutBack' },
+        plugins: {
+          legend: { display: false },
+          datalabels: { anchor: 'end', align: 'right', formatter: v => fmt(v), font: { family: "'DM Mono',monospace", size: 10, weight: '600' }, color: '#b0bdd6' },
+          tooltip: { callbacks: { label: ctx => ' Pendentes: ' + fmt(ctx.raw) + ' pkgs' } }
+        },
+        scales: {
+          x: { grid: { color: '#252e42' }, ticks: { color: '#b0bdd6', callback: v => fmt(v) } },
+          y: { grid: { display: false }, ticks: { color: '#b0bdd6', font: { family: "'DM Mono',monospace", size: 9 } } }
+        },
+        layout: { padding: { right: 55 } }
+      }
+    });
+  }
+
+  // ── Gráfico: Pendentes por Transportadora (ofensores) ────────────────────
+  if (document.getElementById('ch-ofen-pend-transp')) {
+    // Agregar pendentes por transportadora a partir das rotas
+    const transpPend = {};
+    allRoutes.forEach(r => {
+      if (!r.transp) return;
+      transpPend[r.transp] = (transpPend[r.transp] || 0) + (r.pend || 0);
+    });
+    const topTranspPend = Object.entries(transpPend)
+      .filter(([, v]) => v > 0)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10);
+    const TCOLS = ['#ef4444','#f59e0b','#f97316','#a855f7','#3b82f6','#06b6d4','#22c55e','#ec4899','#84cc16','#14b8a6'];
+    if (charts.ofenPendTransp) charts.ofenPendTransp.destroy();
+    charts.ofenPendTransp = new Chart(document.getElementById('ch-ofen-pend-transp'), {
+      type: 'bar',
+      data: {
+        labels: topTranspPend.map(([t]) => t.length > 20 ? t.slice(0,20)+'…' : t),
+        datasets: [{
+          label: 'Pkgs pendentes',
+          data: topTranspPend.map(([, v]) => v),
+          backgroundColor: TCOLS.map(c => c + 'bb'),
+          borderColor: TCOLS,
+          borderWidth: 2, borderRadius: 6, borderSkipped: false
+        }]
+      },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        animation: { duration: 700, easing: 'easeOutBack' },
+        plugins: {
+          legend: { display: false },
+          datalabels: { anchor: 'end', align: 'right', formatter: v => fmt(v), font: { family: "'DM Mono',monospace", size: 10, weight: '600' }, color: '#b0bdd6' },
+          tooltip: { callbacks: { label: ctx => ' Pendentes: ' + fmt(ctx.raw) + ' pkgs' } }
+        },
+        scales: {
+          x: { grid: { color: '#252e42' }, ticks: { color: '#b0bdd6', callback: v => fmt(v) } },
+          y: { grid: { display: false }, ticks: { color: '#b0bdd6', font: { family: "'DM Mono',monospace", size: 9 } } }
+        },
+        layout: { padding: { right: 55 } }
+      }
+    });
+  }
+  // ─────────────────────────────────────────────────────────────────────────
 }
 
 function safeRun(fn, label) {
