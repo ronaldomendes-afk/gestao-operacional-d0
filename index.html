@@ -1099,9 +1099,9 @@ function buildCars(){
     },layout:{padding:{top:6}}}}); 
 }
 function buildPend(){
-  if(!HUBS.length) return;
-  const d=[...HUBS].sort((a,b)=>b.pkg_pend-a.pkg_pend).slice(0,10);
-  if(charts.pend)charts.pend.destroy();
+  // gráfico removido — mantido para compatibilidade
+}
+
 function renderHubGrid(){
   const el = document.getElementById('hub-perf-grid');
   if(!el) return;
