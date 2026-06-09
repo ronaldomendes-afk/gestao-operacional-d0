@@ -623,6 +623,7 @@ td{padding:9px 12px;vertical-align:middle;white-space:nowrap}
         <button class="fbt" onclick="setF('fin',this)">100%</button>
       </div>
       <div class="sw"><svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input id="srch" type="text" placeholder="Buscar HUB..." oninput="renderTable()"></div>
+      <div class="sw"><svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><input id="srch-seller" type="text" placeholder="Filtrar por seller..." oninput="renderTable()" style="width:160px"></div>
     </div>
   </div>
   <div id="tbl-body-wrap" class="collapsible"><div class="tbl-wrap">
@@ -707,16 +708,16 @@ td{padding:9px 12px;vertical-align:middle;white-space:nowrap}
     </div>
 
     <!-- Gráficos -->
-    <div class="sellers-charts-grid">
+    <div style="display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:16px">
       <div class="panel">
         <div class="panel-title">Top 15 — Maior Backlog</div>
         <div class="panel-sub">Sellers e places com mais pacotes não preparados</div>
-        <div class="ch-wrap" style="height:300px"><canvas id="ch-sel-backlog"></canvas></div>
+        <div class="ch-wrap" style="height:320px"><canvas id="ch-sel-backlog"></canvas></div>
       </div>
       <div class="panel">
         <div class="panel-title">Top 15 — Pior Eficiência (com coleta)</div>
-        <div class="panel-sub">Sellers que coletaram mas com menor eficiência · mín. 100 estimados · barras azul=coletados / colorida=eficiência</div>
-        <div class="ch-wrap" style="height:300px"><canvas id="ch-sel-efi"></canvas></div>
+        <div class="panel-sub">Sellers que coletaram mas com menor eficiência · mín. 100 estimados · azul=coletados · colorido=eficiência</div>
+        <div class="ch-wrap" style="height:320px"><canvas id="ch-sel-efi"></canvas></div>
       </div>
     </div>
 
@@ -738,6 +739,7 @@ td{padding:9px 12px;vertical-align:middle;white-space:nowrap}
               <th onclick="sortSellers('Nome')">Nome ↕</th>
               <th onclick="sortSellers('ID')">ID ↕</th>
               <th onclick="sortSellers('Tipo_Interno')">Tipo ↕</th>
+              <th onclick="sortSellers('Preparados')">Preparados ↕</th>
               <th onclick="sortSellers('Estimados')">Estimados ↕</th>
               <th onclick="sortSellers('Coletados')">Coletados ↕</th>
               <th onclick="sortSellers('Backlog')">Backlog ↕</th>
@@ -1323,8 +1325,20 @@ const SVG={
 
 function renderTable(){
   const hora=getHM(), q=(document.getElementById('srch').value||'').toLowerCase();
+  const qSeller=(document.getElementById('srch-seller')?.value||'').toLowerCase().trim();
   let rows=[...HUBS];
   if(q) rows=rows.filter(h=>h.hub.toLowerCase().includes(q)||h.nome.toLowerCase().includes(q));
+  // Filtro por seller: mostrar HUBs que têm rotas com motorista/transp contendo o termo
+  if(qSeller){
+    rows=rows.filter(h=>{
+      const hubRoutes=(window.hubMapGlobal&&window.hubMapGlobal[h.hub])?window.hubMapGlobal[h.hub].routes:[];
+      return hubRoutes.some(r=>
+        (r.motorista||'').toLowerCase().includes(qSeller)||
+        (r.transp||'').toLowerCase().includes(qSeller)||
+        (r.id||'').toLowerCase().includes(qSeller)
+      );
+    });
+  }
   if(activeF==='crit') rows=rows.filter(h=>h.perc_col<65);
   if(activeF==='atc')  rows=rows.filter(h=>h.perc_col>=65&&h.perc_col<85);
   if(activeF==='ok')   rows=rows.filter(h=>h.perc_col>=85&&h.rotas_fin<h.total_rotas);
@@ -2865,7 +2879,7 @@ function renderSellersSection() {
     return est > 0 ? (col / est * 100) : 0;
   };
   const topEfi = [...csvSellers]
-    .filter(r => parseSelNum(r['Estimados']) >= 100 && parseSelNum(r['Coletados']) > 0)
+    .filter(r => parseSelNum(r['Estimados']) >= 100 && parseSelNum(r['Coletados']) >= 10)
     .sort((a,b) => getEfi(a) - getEfi(b))
     .slice(0, 15);
 
@@ -3000,6 +3014,7 @@ function renderSellersTable() {
       <td style="font-weight:600;color:var(--t1);max-width:200px;overflow:hidden;text-overflow:ellipsis">${r['Nome']||'—'}</td>
       <td style="font-family:'DM Mono',monospace;font-size:10px">${r['ID']||'—'}</td>
       <td>${tipoBadge}</td>
+      <td style="font-family:'DM Mono',monospace;color:#06b6d4">${r['Preparados']||'—'}</td>
       <td style="font-family:'DM Mono',monospace">${r['Estimados']||'—'}</td>
       <td style="font-family:'DM Mono',monospace;color:#22c55e">${r['Coletados']||'—'}</td>
       <td style="font-family:'DM Mono',monospace;color:${parseSelNum(r['Backlog'])>0?'#f59e0b':'var(--t3)'}">${r['Backlog']||'0'}</td>
