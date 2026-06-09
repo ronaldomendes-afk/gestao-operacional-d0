@@ -716,7 +716,7 @@ td{padding:9px 12px;vertical-align:middle;white-space:nowrap}
       <div class="panel">
         <div class="panel-title">Top 15 — Pior Eficiência (com coleta)</div>
         <div class="panel-sub">Sellers que coletaram mas com menor eficiência · mín. 100 estimados · azul=coletados · colorido=eficiência</div>
-        <div class="ch-wrap" style="height:320px"><canvas id="ch-sel-efi"></canvas></div>
+        <div class="ch-wrap" style="height:480px"><canvas id="ch-sel-efi"></canvas></div>
       </div>
     </div>
 
@@ -1325,20 +1325,8 @@ const SVG={
 
 function renderTable(){
   const hora=getHM(), q=(document.getElementById('srch').value||'').toLowerCase();
-  const qSeller=(document.getElementById('srch-seller')?.value||'').toLowerCase().trim();
   let rows=[...HUBS];
   if(q) rows=rows.filter(h=>h.hub.toLowerCase().includes(q)||h.nome.toLowerCase().includes(q));
-  // Filtro por seller: mostrar HUBs que têm rotas com motorista/transp contendo o termo
-  if(qSeller){
-    rows=rows.filter(h=>{
-      const hubRoutes=(window.hubMapGlobal&&window.hubMapGlobal[h.hub])?window.hubMapGlobal[h.hub].routes:[];
-      return hubRoutes.some(r=>
-        (r.motorista||'').toLowerCase().includes(qSeller)||
-        (r.transp||'').toLowerCase().includes(qSeller)||
-        (r.id||'').toLowerCase().includes(qSeller)
-      );
-    });
-  }
   if(activeF==='crit') rows=rows.filter(h=>h.perc_col<65);
   if(activeF==='atc')  rows=rows.filter(h=>h.perc_col>=65&&h.perc_col<85);
   if(activeF==='ok')   rows=rows.filter(h=>h.perc_col>=85&&h.rotas_fin<h.total_rotas);
@@ -1506,7 +1494,7 @@ function buildRouteCards(routes, hub_sla){
 
 function setF(f,btn){
   activeF=f;
-  document.querySelectorAll('.fbt').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('.fbts .fbt').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');
   renderTable();
 }
@@ -2936,9 +2924,9 @@ function renderSellersSection() {
         scales: {
           x:  { display: false },
           x2: { display: false, max: 100 },
-          y:  { grid:{ display:false }, ticks:{ color:'#e2e8f0', font:{ size:11, weight:'700' } } }
+          y:  { grid:{ display:false }, ticks:{ color:'#e2e8f0', font:{ size:13, weight:'700' } } }
         },
-        layout: { padding:{ right: 70 } }
+        layout: { padding:{ right: 80 } }
       }
     });
   }
