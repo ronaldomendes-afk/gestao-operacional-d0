@@ -623,7 +623,6 @@ td{padding:9px 12px;vertical-align:middle;white-space:nowrap}
         <button class="fbt" onclick="setF('fin',this)">100%</button>
       </div>
       <div class="sw"><svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input id="srch" type="text" placeholder="Buscar HUB..." oninput="renderTable()"></div>
-      <div class="sw"><svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><input id="srch-seller" type="text" placeholder="Filtrar por seller..." oninput="renderTable()" style="width:160px"></div>
     </div>
   </div>
   <div id="tbl-body-wrap" class="collapsible"><div class="tbl-wrap">
@@ -726,6 +725,7 @@ td{padding:9px 12px;vertical-align:middle;white-space:nowrap}
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
         <div style="font-size:12px;font-weight:700;color:var(--t1)">Todos os Registros</div>
         <input class="sel-search" id="sel-search" placeholder="🔍 Buscar por nome ou ID..." oninput="renderSellersTable()">
+        <input class="sel-search" id="sel-search-seller" placeholder="🔍 Seller específico..." oninput="renderSellersTable()" style="width:200px">
         <button class="sel-filter-btn active" id="sel-f-all" onclick="setSellersFilter('all')">Todos</button>
         <button class="sel-filter-btn" id="sel-f-alerta" onclick="setSellersFilter('alerta')">⚠️ Com alerta</button>
         <button class="sel-filter-btn" id="sel-f-seller" onclick="setSellersFilter('seller')">Sellers</button>
@@ -2918,11 +2918,12 @@ function renderSellersSection() {
         indexAxis: 'y', responsive: true, maintainAspectRatio: false,
         animation: { duration: 700 },
         plugins: {
-          legend: { display: true, position: 'top', labels: { color:'#b0bdd6', font:{ size:10 }, boxWidth:10 } },
+          legend: { display: true, position: 'top', labels: { color:'#e2e8f0', font:{ size:11, weight:'700' }, boxWidth:12, padding:16 } },
           datalabels: {
             anchor:'end', align:'right',
             formatter: (v, ctx) => ctx.datasetIndex === 0 ? fmt(v) : v.toFixed(1)+'%',
-            font:{ family:"'DM Mono',monospace", size:9, weight:'600' }, color:'#b0bdd6'
+            font:{ family:"'DM Mono',monospace", size:11, weight:'700' },
+            color: (ctx) => ctx.datasetIndex === 0 ? '#60a5fa' : '#fbbf24'
           },
           tooltip: {
             callbacks: {
@@ -2935,9 +2936,9 @@ function renderSellersSection() {
         scales: {
           x:  { display: false },
           x2: { display: false, max: 100 },
-          y:  { grid:{ display:false }, ticks:{ color:'#b0bdd6', font:{ size:9 } } }
+          y:  { grid:{ display:false }, ticks:{ color:'#e2e8f0', font:{ size:11, weight:'700' } } }
         },
-        layout: { padding:{ right: 55 } }
+        layout: { padding:{ right: 70 } }
       }
     });
   }
@@ -2970,9 +2971,11 @@ function selPage(dir) {
 function renderSellersTable() {
   if (!csvSellers) return;
   const q = (document.getElementById('sel-search')?.value || '').toLowerCase();
+  const qSel = (document.getElementById('sel-search-seller')?.value || '').toLowerCase();
 
   let data = csvSellers.filter(r => {
     if (q && !r['Nome'].toLowerCase().includes(q) && !String(r['ID']).includes(q)) return false;
+    if (qSel && !r['Nome'].toLowerCase().includes(qSel) && !String(r['ID']).includes(qSel)) return false;
     if (_selFilter === 'alerta' && !(r['Alerta']||'').includes('BACKLOG')) return false;
     if (_selFilter === 'seller' && r['Tipo_Interno'] !== 'seller') return false;
     if (_selFilter === 'place'  && r['Tipo_Interno'] !== 'place')  return false;
