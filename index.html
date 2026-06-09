@@ -339,6 +339,32 @@ td{padding:9px 12px;vertical-align:middle;white-space:nowrap}
 
 
 
+
+/* ── Sellers Section ─────────────────────────────────────── */
+.sellers-section{margin-bottom:20px}
+.sellers-kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px}
+@media(max-width:900px){.sellers-kpi-grid{grid-template-columns:repeat(2,1fr)}}
+.sel-kpi{background:var(--s1);border:1px solid var(--bd);border-radius:var(--rl);padding:16px;box-shadow:var(--sh)}
+.sel-kpi-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin-bottom:6px}
+.sel-kpi-val{font-size:26px;font-weight:800;font-family:'DM Mono',monospace;color:var(--t1);line-height:1}
+.sel-kpi-sub{font-size:10px;color:var(--t3);margin-top:4px}
+.sellers-charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+@media(max-width:800px){.sellers-charts-grid{grid-template-columns:1fr}}
+.sel-table-wrap{overflow-x:auto}
+.sel-table{width:100%;border-collapse:collapse;font-size:11px}
+.sel-table th{padding:8px 12px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--t3);border-bottom:1px solid var(--bd);cursor:pointer;white-space:nowrap}
+.sel-table th:hover{color:var(--t1)}
+.sel-table td{padding:7px 12px;border-bottom:1px solid #1a2035;color:var(--t2);white-space:nowrap}
+.sel-table tr:hover td{background:#1a2035}
+.sel-badge{display:inline-block;font-size:9px;padding:2px 7px;border-radius:8px;font-weight:700}
+.sel-badge.ok{background:#22c55e22;color:#22c55e;border:1px solid #22c55e44}
+.sel-badge.warn{background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b44}
+.sel-badge.crit{background:#ef444422;color:#ef4444;border:1px solid #ef444444}
+.sel-search{background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:7px 12px;color:var(--t1);font-size:12px;width:220px;outline:none}
+.sel-search:focus{border-color:var(--blu-t)}
+.sel-filter-btn{background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:6px 12px;color:var(--t2);font-size:11px;cursor:pointer}
+.sel-filter-btn.active{background:var(--blu-t);color:#fff;border-color:var(--blu-t)}
+
 </style>
 <!-- cache-bust:20260606020842 -->
 </head>
@@ -635,6 +661,101 @@ td{padding:9px 12px;vertical-align:middle;white-space:nowrap}
   </div>
 </div>
 
+
+<!-- ── SELLERS SECTION ──────────────────────────────────── -->
+<div class="sellers-section fi-anim" id="sellers-section" style="display:none">
+  <div class="sec-hdr" style="margin-bottom:14px">
+    <div>
+      <div class="sec-title">Monitoramento de Sellers</div>
+      <div class="sec-sub">Eficiência · Backlog · Coleta por seller e place</div>
+    </div>
+    <button class="btn" onclick="toggleSection('sellers-section-body')">
+      <span id="sellers-toggle-label">▼ Recolher</span>
+    </button>
+  </div>
+  <div id="sellers-section-body">
+    <!-- KPI Cards -->
+    <div class="sellers-kpi-grid">
+      <div class="sel-kpi" style="border-bottom:3px solid var(--blu-t)">
+        <div class="sel-kpi-label">📦 Estimados</div>
+        <div class="sel-kpi-val" id="sel-kpi-est">—</div>
+        <div class="sel-kpi-sub">total do dia</div>
+      </div>
+      <div class="sel-kpi" style="border-bottom:3px solid #22c55e">
+        <div class="sel-kpi-label">✅ Coletados</div>
+        <div class="sel-kpi-val cg" id="sel-kpi-col">—</div>
+        <div class="sel-kpi-sub">total coletado</div>
+      </div>
+      <div class="sel-kpi" style="border-bottom:3px solid #f59e0b">
+        <div class="sel-kpi-label">⏳ Backlog</div>
+        <div class="sel-kpi-val ca" id="sel-kpi-bkl">—</div>
+        <div class="sel-kpi-sub">não preparados</div>
+      </div>
+      <div class="sel-kpi" style="border-bottom:3px solid #a855f7">
+        <div class="sel-kpi-label">⚡ Eficiência</div>
+        <div class="sel-kpi-val" id="sel-kpi-efi" style="color:#a855f7">—</div>
+        <div class="sel-kpi-sub">col / est</div>
+      </div>
+      <div class="sel-kpi" style="border-bottom:3px solid #ef4444">
+        <div class="sel-kpi-label">⚠️ Com Alerta</div>
+        <div class="sel-kpi-val cr" id="sel-kpi-alerta">—</div>
+        <div class="sel-kpi-sub">backlog detectado</div>
+      </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="sellers-charts-grid">
+      <div class="panel">
+        <div class="panel-title">Top 15 — Maior Backlog</div>
+        <div class="panel-sub">Sellers e places com mais pacotes não preparados</div>
+        <div class="ch-wrap" style="height:300px"><canvas id="ch-sel-backlog"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">Top 15 — Pior Eficiência</div>
+        <div class="panel-sub">Sellers e places abaixo da meta · mín. 100 estimados</div>
+        <div class="ch-wrap" style="height:300px"><canvas id="ch-sel-efi"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Tabela -->
+    <div class="panel">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+        <div style="font-size:12px;font-weight:700;color:var(--t1)">Todos os Registros</div>
+        <input class="sel-search" id="sel-search" placeholder="🔍 Buscar por nome ou ID..." oninput="renderSellersTable()">
+        <button class="sel-filter-btn active" id="sel-f-all" onclick="setSellersFilter('all')">Todos</button>
+        <button class="sel-filter-btn" id="sel-f-alerta" onclick="setSellersFilter('alerta')">⚠️ Com alerta</button>
+        <button class="sel-filter-btn" id="sel-f-seller" onclick="setSellersFilter('seller')">Sellers</button>
+        <button class="sel-filter-btn" id="sel-f-place" onclick="setSellersFilter('place')">Places</button>
+        <span style="margin-left:auto;font-size:10px;color:var(--t3)" id="sel-count"></span>
+      </div>
+      <div class="sel-table-wrap">
+        <table class="sel-table">
+          <thead>
+            <tr>
+              <th onclick="sortSellers('Nome')">Nome ↕</th>
+              <th onclick="sortSellers('ID')">ID ↕</th>
+              <th onclick="sortSellers('Tipo_Interno')">Tipo ↕</th>
+              <th onclick="sortSellers('Estimados')">Estimados ↕</th>
+              <th onclick="sortSellers('Coletados')">Coletados ↕</th>
+              <th onclick="sortSellers('Backlog')">Backlog ↕</th>
+              <th onclick="sortSellers('Eficiência')">Eficiência ↕</th>
+              <th onclick="sortSellers('Status')">Status ↕</th>
+              <th onclick="sortSellers('Alerta')">Alerta ↕</th>
+            </tr>
+          </thead>
+          <tbody id="sel-tbody"></tbody>
+        </table>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px">
+        <button class="sel-filter-btn" id="sel-prev" onclick="selPage(-1)">← Anterior</button>
+        <span style="font-size:11px;color:var(--t3)" id="sel-page-info"></span>
+        <button class="sel-filter-btn" id="sel-next" onclick="selPage(1)">Próxima →</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ── /SELLERS SECTION ──────────────────────────────────── -->
+
 <!-- BOTTOM -->
 <div class="bot-row fi-anim">
   <button class="btn" onclick="openImp()"><svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Novo import</button>
@@ -709,6 +830,22 @@ td{padding:9px 12px;vertical-align:middle;white-space:nowrap}
     </div>
     <input type="file" id="fi3" accept=".csv" style="display:none" onchange="loadExt(this)">
     <div class="fi" id="fi3-info"></div>
+  </div>
+
+  <!-- 4 · Sellers -->
+  <div class="cfg-section" style="margin-top:12px">
+    <div class="cfg-section-title">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      4 · Monitoramento de Sellers <span style="font-size:9px;background:#a855f722;color:#a855f7;padding:1px 6px;border-radius:10px;font-weight:600;margin-left:4px">Opcional</span>
+    </div>
+    <div class="cfg-section-desc">CSV exportado do Google Sheets — traz eficiência, backlog e status por seller e place.</div>
+    <div class="upload-z" onclick="document.getElementById('fi4').click()">
+      <svg fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+      <p id="fi4-name">Monitoramento_por_Sellers_*.csv</p>
+      <small>Nome · ID · Estimados · Coletados · Backlog · Eficiência · Alerta</small>
+    </div>
+    <input type="file" id="fi4" accept=".csv" style="display:none" onchange="loadSellers(this)">
+    <div class="fi" id="fi4-info"></div>
   </div>
 
   <hr style="border:none;border-top:1px solid var(--bd);margin:12px 0">
@@ -1374,6 +1511,11 @@ function sortBy(k){
 let monRoutes = null;  // array de rotas do JSON de Monitoramento
 let csv2 = null;       // dados do CSV de Coletas
 let csv3 = null;       // dados do CSV Extração Logistics (status + evolução)
+let csvSellers = null; // dados do CSV de Sellers
+let _selFilter = 'all';
+let _selSort   = { col: 'Backlog', asc: false };
+let _selPage   = 0;
+const _selPageSize = 50;
 
 // Mapeia status do JSON para PT-BR
 function mapStatus(s) {
@@ -2626,6 +2768,217 @@ function _mostrarModalExport(qtd, stamp) {
     </div>`;
   document.body.appendChild(modal);
   modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── SELLERS ──────────────────────────────────────────────────────────────────
+function loadSellers(inp) {
+  const f = inp.files[0];
+  if (!f) return;
+  document.getElementById('fi4-name').textContent = f.name;
+  Papa.parse(f, { header: true, skipEmptyLines: true, complete: r => {
+    csvSellers = r.data.filter(row => row['Nome'] && row['Nome'].trim());
+    window._rawCsvSellers = csvSellers;
+    document.getElementById('fi4-info').textContent = '✓ ' + csvSellers.length + ' registros carregados';
+    document.getElementById('fi4-info').className = 'fi ok';
+    renderSellersSection();
+  }});
+}
+
+function parseSelNum(v) {
+  if (!v) return 0;
+  return parseFloat(String(v).replace(/\./g,'').replace(',','.').trim()) || 0;
+}
+
+function renderSellersSection() {
+  if (!csvSellers || !csvSellers.length) return;
+
+  const sec = document.getElementById('sellers-section');
+  if (sec) sec.style.display = '';
+
+  // ── KPIs ──
+  let totalEst = 0, totalCol = 0, totalBkl = 0, totalAlerta = 0;
+  csvSellers.forEach(r => {
+    totalEst   += parseSelNum(r['Estimados']);
+    totalCol   += parseSelNum(r['Coletados']);
+    totalBkl   += parseSelNum(r['Backlog']);
+    if ((r['Alerta'] || '').includes('BACKLOG')) totalAlerta++;
+  });
+  const efi = totalEst > 0 ? (totalCol / totalEst * 100) : 0;
+  const efiColor = efi >= 95 ? '#22c55e' : efi >= 85 ? '#f59e0b' : '#ef4444';
+
+  document.getElementById('sel-kpi-est').textContent   = fmt(totalEst);
+  document.getElementById('sel-kpi-col').textContent   = fmt(totalCol);
+  document.getElementById('sel-kpi-bkl').textContent   = fmt(totalBkl);
+  document.getElementById('sel-kpi-efi').textContent   = efi.toFixed(1) + '%';
+  document.getElementById('sel-kpi-efi').style.color   = efiColor;
+  document.getElementById('sel-kpi-alerta').textContent = fmt(totalAlerta);
+
+  // ── Gráfico Backlog ──
+  const topBacklog = [...csvSellers]
+    .filter(r => parseSelNum(r['Backlog']) > 0)
+    .sort((a,b) => parseSelNum(b['Backlog']) - parseSelNum(a['Backlog']))
+    .slice(0, 15);
+
+  if (document.getElementById('ch-sel-backlog')) {
+    if (window._chartSelBacklog) window._chartSelBacklog.destroy();
+    window._chartSelBacklog = new Chart(document.getElementById('ch-sel-backlog'), {
+      type: 'bar',
+      data: {
+        labels: topBacklog.map(r => r['Nome'].length > 22 ? r['Nome'].slice(0,22)+'…' : r['Nome']),
+        datasets: [{
+          label: 'Backlog',
+          data: topBacklog.map(r => parseSelNum(r['Backlog'])),
+          backgroundColor: '#f59e0bbb',
+          borderColor: '#f59e0b',
+          borderWidth: 2, borderRadius: 5, borderSkipped: false
+        }]
+      },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        animation: { duration: 700 },
+        plugins: {
+          legend: { display: false },
+          datalabels: { anchor:'end', align:'right', formatter: v => fmt(v), font:{ family:"'DM Mono',monospace", size:9, weight:'600' }, color:'#b0bdd6' }
+        },
+        scales: {
+          x: { grid:{ color:'#252e42' }, ticks:{ color:'#b0bdd6', callback: v => fmt(v) } },
+          y: { grid:{ display:false }, ticks:{ color:'#b0bdd6', font:{ size:9 } } }
+        },
+        layout: { padding:{ right: 50 } }
+      }
+    });
+  }
+
+  // ── Gráfico Eficiência ──
+  const topEfi = [...csvSellers]
+    .filter(r => parseSelNum(r['Estimados']) >= 100)
+    .sort((a,b) => {
+      const ea = parseSelNum(a['Eficiência'] || (parseSelNum(a['Estimados'])>0 ? (parseSelNum(a['Coletados'])/parseSelNum(a['Estimados'])*100) : 0));
+      const eb = parseSelNum(b['Eficiência'] || (parseSelNum(b['Estimados'])>0 ? (parseSelNum(b['Coletados'])/parseSelNum(b['Estimados'])*100) : 0));
+      return ea - eb;
+    })
+    .slice(0, 15);
+
+  if (document.getElementById('ch-sel-efi')) {
+    if (window._chartSelEfi) window._chartSelEfi.destroy();
+    window._chartSelEfi = new Chart(document.getElementById('ch-sel-efi'), {
+      type: 'bar',
+      data: {
+        labels: topEfi.map(r => r['Nome'].length > 22 ? r['Nome'].slice(0,22)+'…' : r['Nome']),
+        datasets: [{
+          label: 'Eficiência %',
+          data: topEfi.map(r => {
+            const v = String(r['Eficiência']||'').replace('%','').replace(',','.').trim();
+            return parseFloat(v) || 0;
+          }),
+          backgroundColor: topEfi.map(r => {
+            const v = parseFloat(String(r['Eficiência']||'0').replace('%','').replace(',','.')) || 0;
+            return v >= 95 ? '#22c55ebb' : v >= 85 ? '#f59e0bbb' : '#ef4444bb';
+          }),
+          borderColor: topEfi.map(r => {
+            const v = parseFloat(String(r['Eficiência']||'0').replace('%','').replace(',','.')) || 0;
+            return v >= 95 ? '#22c55e' : v >= 85 ? '#f59e0b' : '#ef4444';
+          }),
+          borderWidth: 2, borderRadius: 5, borderSkipped: false
+        }]
+      },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        animation: { duration: 700 },
+        plugins: {
+          legend: { display: false },
+          datalabels: { anchor:'end', align:'right', formatter: v => v.toFixed(1)+'%', font:{ family:"'DM Mono',monospace", size:9, weight:'600' }, color:'#b0bdd6' }
+        },
+        scales: {
+          x: { grid:{ color:'#252e42' }, ticks:{ color:'#b0bdd6', callback: v => v+'%' }, max: 100 },
+          y: { grid:{ display:false }, ticks:{ color:'#b0bdd6', font:{ size:9 } } }
+        },
+        layout: { padding:{ right: 50 } }
+      }
+    });
+  }
+
+  renderSellersTable();
+}
+
+function setSellersFilter(f) {
+  _selFilter = f;
+  _selPage = 0;
+  ['all','alerta','seller','place'].forEach(k => {
+    const btn = document.getElementById('sel-f-' + k);
+    if (btn) btn.classList.toggle('active', k === f);
+  });
+  renderSellersTable();
+}
+
+function sortSellers(col) {
+  if (_selSort.col === col) _selSort.asc = !_selSort.asc;
+  else { _selSort.col = col; _selSort.asc = false; }
+  _selPage = 0;
+  renderSellersTable();
+}
+
+function selPage(dir) {
+  _selPage = Math.max(0, _selPage + dir);
+  renderSellersTable();
+}
+
+function renderSellersTable() {
+  if (!csvSellers) return;
+  const q = (document.getElementById('sel-search')?.value || '').toLowerCase();
+
+  let data = csvSellers.filter(r => {
+    if (q && !r['Nome'].toLowerCase().includes(q) && !String(r['ID']).includes(q)) return false;
+    if (_selFilter === 'alerta' && !(r['Alerta']||'').includes('BACKLOG')) return false;
+    if (_selFilter === 'seller' && r['Tipo_Interno'] !== 'seller') return false;
+    if (_selFilter === 'place'  && r['Tipo_Interno'] !== 'place')  return false;
+    return true;
+  });
+
+  // Ordenar
+  const col = _selSort.col;
+  data.sort((a, b) => {
+    let va = a[col] || '', vb = b[col] || '';
+    const na = parseSelNum(va), nb = parseSelNum(vb);
+    const res = (!isNaN(na) && !isNaN(nb) && (na||nb)) ? na - nb : String(va).localeCompare(String(vb));
+    return _selSort.asc ? res : -res;
+  });
+
+  const total = data.length;
+  const pages = Math.ceil(total / _selPageSize);
+  _selPage = Math.min(_selPage, Math.max(0, pages - 1));
+  const slice = data.slice(_selPage * _selPageSize, (_selPage + 1) * _selPageSize);
+
+  document.getElementById('sel-count').textContent = total + ' registros';
+  document.getElementById('sel-page-info').textContent = `Pág. ${_selPage+1} de ${Math.max(1,pages)}`;
+  document.getElementById('sel-prev').disabled = _selPage === 0;
+  document.getElementById('sel-next').disabled = _selPage >= pages - 1;
+
+  const tbody = document.getElementById('sel-tbody');
+  if (!tbody) return;
+
+  tbody.innerHTML = slice.map(r => {
+    const efiRaw = parseFloat(String(r['Eficiência']||'0').replace('%','').replace(',','.')) || 0;
+    const efiColor = efiRaw >= 95 ? '#22c55e' : efiRaw >= 85 ? '#f59e0b' : '#ef4444';
+    const hasAlerta = (r['Alerta']||'').includes('BACKLOG');
+    const tipoBadge = r['Tipo_Interno'] === 'seller'
+      ? '<span class="sel-badge ok">seller</span>'
+      : r['Tipo_Interno'] === 'place'
+      ? '<span class="sel-badge warn">place</span>'
+      : '<span class="sel-badge" style="background:#3b82f622;color:#3b82f6;border:1px solid #3b82f644">node</span>';
+    return `<tr>
+      <td style="font-weight:600;color:var(--t1);max-width:200px;overflow:hidden;text-overflow:ellipsis">${r['Nome']||'—'}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:10px">${r['ID']||'—'}</td>
+      <td>${tipoBadge}</td>
+      <td style="font-family:'DM Mono',monospace">${r['Estimados']||'—'}</td>
+      <td style="font-family:'DM Mono',monospace;color:#22c55e">${r['Coletados']||'—'}</td>
+      <td style="font-family:'DM Mono',monospace;color:${parseSelNum(r['Backlog'])>0?'#f59e0b':'var(--t3)'}">${r['Backlog']||'0'}</td>
+      <td style="font-family:'DM Mono',monospace;font-weight:700;color:${efiColor}">${r['Eficiência']||'—'}</td>
+      <td><span class="sel-badge ${r['Status']==='OK'?'ok':'warn'}">${r['Status']||'—'}</span></td>
+      <td>${hasAlerta?'<span class="sel-badge crit">⚠ BACKLOG</span>':'<span style="color:var(--t3);font-size:10px">—</span>'}</td>
+    </tr>`;
+  }).join('');
 }
 // ─────────────────────────────────────────────────────────────────────────────
 </script>
