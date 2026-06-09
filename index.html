@@ -669,9 +669,7 @@ td{padding:9px 12px;vertical-align:middle;white-space:nowrap}
       <div class="sec-title">Monitoramento de Sellers</div>
       <div class="sec-sub">Eficiência · Backlog · Coleta por seller e place</div>
     </div>
-    <button class="btn" onclick="toggleSection('sellers-section-body')">
-      <span id="sellers-toggle-label">▼ Recolher</span>
-    </button>
+    <button class="btn" id="btn-sellers-toggle" onclick="togglePanel('sellers-section-body','btn-sellers-toggle')">▼ Recolher</button>
   </div>
   <div id="sellers-section-body">
     <!-- KPI Cards -->
