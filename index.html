@@ -671,13 +671,18 @@ td{padding:9px 12px;vertical-align:middle;white-space:nowrap}
     </div>
     <button class="btn" id="btn-sellers-toggle" onclick="togglePanel('sellers-section-body','btn-sellers-toggle')">▼ Recolher</button>
   </div>
-  <div id="sellers-section-body">
+  <div id="sellers-section-body" class="collapsible" style="max-height:9999px;opacity:1;transition:max-height .4s ease,opacity .3s ease">
     <!-- KPI Cards -->
-    <div class="sellers-kpi-grid">
+    <div class="sellers-kpi-grid" style="grid-template-columns:repeat(6,1fr)">
       <div class="sel-kpi" style="border-bottom:3px solid var(--blu-t)">
         <div class="sel-kpi-label">📦 Estimados</div>
         <div class="sel-kpi-val" id="sel-kpi-est">—</div>
         <div class="sel-kpi-sub">total do dia</div>
+      </div>
+      <div class="sel-kpi" style="border-bottom:3px solid #06b6d4">
+        <div class="sel-kpi-label">🔧 Preparados</div>
+        <div class="sel-kpi-val" id="sel-kpi-prep" style="color:#06b6d4">—</div>
+        <div class="sel-kpi-sub">prontos para coleta</div>
       </div>
       <div class="sel-kpi" style="border-bottom:3px solid #22c55e">
         <div class="sel-kpi-label">✅ Coletados</div>
@@ -709,8 +714,8 @@ td{padding:9px 12px;vertical-align:middle;white-space:nowrap}
         <div class="ch-wrap" style="height:300px"><canvas id="ch-sel-backlog"></canvas></div>
       </div>
       <div class="panel">
-        <div class="panel-title">Top 15 — Pior Eficiência</div>
-        <div class="panel-sub">Sellers e places abaixo da meta · mín. 100 estimados</div>
+        <div class="panel-title">Top 15 — Pior Eficiência (com coleta)</div>
+        <div class="panel-sub">Sellers que coletaram mas com menor eficiência · mín. 100 estimados · barras azul=coletados / colorida=eficiência</div>
         <div class="ch-wrap" style="height:300px"><canvas id="ch-sel-efi"></canvas></div>
       </div>
     </div>
@@ -2795,17 +2800,20 @@ function renderSellersSection() {
   if (sec) sec.style.display = '';
 
   // ── KPIs ──
-  let totalEst = 0, totalCol = 0, totalBkl = 0, totalAlerta = 0;
+  let totalEst = 0, totalCol = 0, totalBkl = 0, totalAlerta = 0, totalPrep = 0;
   csvSellers.forEach(r => {
     totalEst   += parseSelNum(r['Estimados']);
     totalCol   += parseSelNum(r['Coletados']);
     totalBkl   += parseSelNum(r['Backlog']);
+    totalPrep  += parseSelNum(r['Preparados']);
     if ((r['Alerta'] || '').includes('BACKLOG')) totalAlerta++;
   });
   const efi = totalEst > 0 ? (totalCol / totalEst * 100) : 0;
   const efiColor = efi >= 95 ? '#22c55e' : efi >= 85 ? '#f59e0b' : '#ef4444';
 
   document.getElementById('sel-kpi-est').textContent   = fmt(totalEst);
+  const prepEl = document.getElementById('sel-kpi-prep');
+  if (prepEl) prepEl.textContent = fmt(totalPrep);
   document.getElementById('sel-kpi-col').textContent   = fmt(totalCol);
   document.getElementById('sel-kpi-bkl').textContent   = fmt(totalBkl);
   document.getElementById('sel-kpi-efi').textContent   = efi.toFixed(1) + '%';
@@ -2848,14 +2856,17 @@ function renderSellersSection() {
     });
   }
 
-  // ── Gráfico Eficiência ──
+  // ── Gráfico Pior Eficiência (somente quem coletou > 0, mín 100 estimados) ──
+  const getEfi = r => {
+    const v = String(r['Eficiência']||'').replace('%','').replace(',','.').trim();
+    const pf = parseFloat(v);
+    if (!isNaN(pf)) return pf;
+    const est = parseSelNum(r['Estimados']), col = parseSelNum(r['Coletados']);
+    return est > 0 ? (col / est * 100) : 0;
+  };
   const topEfi = [...csvSellers]
-    .filter(r => parseSelNum(r['Estimados']) >= 100)
-    .sort((a,b) => {
-      const ea = parseSelNum(a['Eficiência'] || (parseSelNum(a['Estimados'])>0 ? (parseSelNum(a['Coletados'])/parseSelNum(a['Estimados'])*100) : 0));
-      const eb = parseSelNum(b['Eficiência'] || (parseSelNum(b['Estimados'])>0 ? (parseSelNum(b['Coletados'])/parseSelNum(b['Estimados'])*100) : 0));
-      return ea - eb;
-    })
+    .filter(r => parseSelNum(r['Estimados']) >= 100 && parseSelNum(r['Coletados']) > 0)
+    .sort((a,b) => getEfi(a) - getEfi(b))
     .slice(0, 15);
 
   if (document.getElementById('ch-sel-efi')) {
@@ -2863,36 +2874,56 @@ function renderSellersSection() {
     window._chartSelEfi = new Chart(document.getElementById('ch-sel-efi'), {
       type: 'bar',
       data: {
-        labels: topEfi.map(r => r['Nome'].length > 22 ? r['Nome'].slice(0,22)+'…' : r['Nome']),
-        datasets: [{
-          label: 'Eficiência %',
-          data: topEfi.map(r => {
-            const v = String(r['Eficiência']||'').replace('%','').replace(',','.').trim();
-            return parseFloat(v) || 0;
-          }),
-          backgroundColor: topEfi.map(r => {
-            const v = parseFloat(String(r['Eficiência']||'0').replace('%','').replace(',','.')) || 0;
-            return v >= 95 ? '#22c55ebb' : v >= 85 ? '#f59e0bbb' : '#ef4444bb';
-          }),
-          borderColor: topEfi.map(r => {
-            const v = parseFloat(String(r['Eficiência']||'0').replace('%','').replace(',','.')) || 0;
-            return v >= 95 ? '#22c55e' : v >= 85 ? '#f59e0b' : '#ef4444';
-          }),
-          borderWidth: 2, borderRadius: 5, borderSkipped: false
-        }]
+        labels: topEfi.map(r => r['Nome'].length > 20 ? r['Nome'].slice(0,20)+'…' : r['Nome']),
+        datasets: [
+          {
+            label: 'Coletados',
+            data: topEfi.map(r => parseSelNum(r['Coletados'])),
+            backgroundColor: '#3b82f6bb',
+            borderColor: '#3b82f6',
+            borderWidth: 2, borderRadius: 5, borderSkipped: false,
+            yAxisID: 'y', xAxisID: 'x'
+          },
+          {
+            label: 'Eficiência %',
+            data: topEfi.map(r => getEfi(r)),
+            backgroundColor: topEfi.map(r => {
+              const v = getEfi(r);
+              return v >= 95 ? '#22c55e88' : v >= 85 ? '#f59e0b88' : '#ef444488';
+            }),
+            borderColor: topEfi.map(r => {
+              const v = getEfi(r);
+              return v >= 95 ? '#22c55e' : v >= 85 ? '#f59e0b' : '#ef4444';
+            }),
+            borderWidth: 2, borderRadius: 5, borderSkipped: false,
+            yAxisID: 'y', xAxisID: 'x2', type: 'bar'
+          }
+        ]
       },
       options: {
         indexAxis: 'y', responsive: true, maintainAspectRatio: false,
         animation: { duration: 700 },
         plugins: {
-          legend: { display: false },
-          datalabels: { anchor:'end', align:'right', formatter: v => v.toFixed(1)+'%', font:{ family:"'DM Mono',monospace", size:9, weight:'600' }, color:'#b0bdd6' }
+          legend: { display: true, position: 'top', labels: { color:'#b0bdd6', font:{ size:10 }, boxWidth:10 } },
+          datalabels: {
+            anchor:'end', align:'right',
+            formatter: (v, ctx) => ctx.datasetIndex === 0 ? fmt(v) : v.toFixed(1)+'%',
+            font:{ family:"'DM Mono',monospace", size:9, weight:'600' }, color:'#b0bdd6'
+          },
+          tooltip: {
+            callbacks: {
+              label: ctx => ctx.datasetIndex === 0
+                ? ' Coletados: ' + fmt(ctx.raw)
+                : ' Eficiência: ' + ctx.raw.toFixed(1) + '%'
+            }
+          }
         },
         scales: {
-          x: { grid:{ color:'#252e42' }, ticks:{ color:'#b0bdd6', callback: v => v+'%' }, max: 100 },
-          y: { grid:{ display:false }, ticks:{ color:'#b0bdd6', font:{ size:9 } } }
+          x:  { display: false },
+          x2: { display: false, max: 100 },
+          y:  { grid:{ display:false }, ticks:{ color:'#b0bdd6', font:{ size:9 } } }
         },
-        layout: { padding:{ right: 50 } }
+        layout: { padding:{ right: 55 } }
       }
     });
   }
