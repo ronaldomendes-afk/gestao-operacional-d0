@@ -2176,87 +2176,80 @@ function exportarDados(){
   const rawMon  = window._rawMonRoutes || [];
   const rawCsv2 = window._rawCsv2 || [];
   const rawCsv3 = window._rawCsv3 || [];
-  const rawSel  = typeof csvSellers !== 'undefined' && csvSellers ? csvSellers : [];
+  const rawSel  = (typeof csvSellers!=='undefined' && csvSellers) ? csvSellers : [];
+  const hora    = (typeof DATA_HORA_REF!=='undefined') ? DATA_HORA_REF : '--:--';
 
   if(!rawMon.length && !rawCsv2.length){
     alert('Nenhum dado carregado. Importe os arquivos primeiro.');
     return;
   }
 
-  // Serializa os dados
-  const dadosJSON = JSON.stringify({
-    mon:  rawMon,
-    csv2: rawCsv2,
-    csv3: rawCsv3,
-    sel:  rawSel,
-    hora: (typeof DATA_HORA_REF !== 'undefined') ? DATA_HORA_REF : '--:--'
-  });
+  // Busca o HTML base direto do servidor (evita serializar o DOM inteiro)
+  fetch(location.href)
+    .then(r=>r.text())
+    .then(function(baseHtml){
+      // Monta bloco de dados inline
+      var dataBlock = '<script id="__snap_data__">
+' +
+        'window.__isSnapshot=true;
+' +
+        'window._rawMonRoutes=' + JSON.stringify(rawMon) + ';
+' +
+        'window._rawCsv2='      + JSON.stringify(rawCsv2) + ';
+' +
+        'window._rawCsv3='      + JSON.stringify(rawCsv3) + ';
+' +
+        'window.__snapSel='     + JSON.stringify(rawSel)  + ';
+' +
+        'window.__snapHora="'   + hora + '";
+' +
+        '<\/script>
+';
 
-  // Script que injeta dados ANTES do renderAll() existente
-  const injectScript =
-    '<script id="__snap__">'+
-    '(function(){'+
-    'var D=JSON.parse(document.getElementById("__snap__").getAttribute("data-d"));'+
-    'window._rawMonRoutes=D.mon;window._rawCsv2=D.csv2;window._rawCsv3=D.csv3;'+
-    'window.__snapSel=D.sel;window.__snapHora=D.hora;'+
-    // sobrescreve o setTimeout que abre o modal quando sem dados
-    'window.__isSnapshot=true;'+
-    '})();'+
-    '<\/script>';
+      // Patch: injeta dados antes do </head>
+      var snap = baseHtml.replace('</head>', dataBlock + '</head>');
 
-  // Pega o HTML atual
-  let html = document.documentElement.outerHTML;
+      // Patch: não abrir modal automaticamente no snapshot
+      snap = snap.replace(
+        'setTimeout(()=>{if(Object.keys(ROUTES).length===0) openImp();},400);',
+        'if(!window.__isSnapshot){setTimeout(()=>{if(Object.keys(ROUTES).length===0) openImp();},400);}'
+      );
 
-  // Garante que tem <!DOCTYPE html>
-  if(!html.startsWith('<!DOCTYPE')) html = '<!DOCTYPE html>\n' + html;
+      // Patch: carregar dados do snapshot antes do renderAll
+      snap = snap.replace(
+        'renderAll();',
+        'if(window._rawMonRoutes&&window._rawMonRoutes.length) monRoutes=window._rawMonRoutes;
+' +
+        'if(window._rawCsv2&&window._rawCsv2.length) csv2=window._rawCsv2;
+' +
+        'if(window._rawCsv3&&window._rawCsv3.length) csv3=window._rawCsv3;
+' +
+        'if(window.__snapSel&&window.__snapSel.length) csvSellers=window.__snapSel;
+' +
+        'if(window.__snapHora) DATA_HORA_REF=window.__snapHora;
+' +
+        '["src-json-st","src-col-st","src-ext-st"].forEach(function(id){var el=document.getElementById(id);if(el){el.textContent="✓";el.style.color="var(--grn-t)";}});
+' +
+        'renderAll();
+' +
+        'if(csvSellers&&csvSellers.length){try{renderSellersSection();}catch(e){}}
+'
+      );
 
-  // Injeta o script logo após <head> ou antes do primeiro <script>
-  html = html.replace('<head>', '<head>\n' + injectScript);
-
-  // Adiciona atributo data-d com os dados no script tag
-  html = html.replace(
-    '<script id="__snap__">',
-    '<script id="__snap__" data-d='' + dadosJSON.replace(/'/g, "&#39;") + ''>'
-  );
-
-  // Patch: no snapshot, não abrir o modal automaticamente
-  html = html.replace(
-    "setTimeout(()=>{if(Object.keys(ROUTES).length===0) openImp();},400);",
-    "if(!window.__isSnapshot){setTimeout(()=>{if(Object.keys(ROUTES).length===0) openImp();},400);}"
-  );
-
-  // Patch: injeta os dados nas variáveis globais antes do renderAll
-  // Substitui o renderAll() final para primeiro carregar os dados do snapshot
-  html = html.replace(
-    'renderAll();',
-    'if(window._rawMonRoutes&&window._rawMonRoutes.length){monRoutes=window._rawMonRoutes;}' +
-    'if(window._rawCsv2&&window._rawCsv2.length){csv2=window._rawCsv2;}' +
-    'if(window._rawCsv3&&window._rawCsv3.length){csv3=window._rawCsv3;}' +
-    'if(window.__snapSel&&window.__snapSel.length){csvSellers=window.__snapSel;}' +
-    'if(window.__snapHora){DATA_HORA_REF=window.__snapHora;}' +
-    // atualiza pills
-    "['src-json-st','src-col-st','src-ext-st'].forEach(function(id){var el=document.getElementById(id);if(el){el.textContent='✓';el.style.color='var(--grn-t)';}});" +
-    'renderAll();' +
-    'if(csvSellers&&csvSellers.length){try{renderSellersSection();}catch(e){}}'
-  );
-
-  // Nome do arquivo
-  const now = new Date();
-  const ts  = now.getFullYear()+
-              String(now.getMonth()+1).padStart(2,'0')+
-              String(now.getDate()).padStart(2,'0')+'_'+
-              String(now.getHours()).padStart(2,'0')+
-              String(now.getMinutes()).padStart(2,'0');
-  const nome = 'painel_firstmile_'+ts+'.html';
-
-  // Download via Blob
-  const blob = new Blob([html], {type:'text/html;charset=utf-8'});
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href = url; a.download = nome;
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
+      // Download
+      var now  = new Date();
+      var ts   = now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0')+'_'+String(now.getHours()).padStart(2,'0')+String(now.getMinutes()).padStart(2,'0');
+      var nome = 'painel_firstmile_'+ts+'.html';
+      var blob = new Blob([snap],{type:'text/html;charset=utf-8'});
+      var url  = URL.createObjectURL(blob);
+      var a    = document.createElement('a');
+      a.href=url; a.download=nome;
+      document.body.appendChild(a); a.click();
+      setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
+    })
+    .catch(function(err){
+      alert('Erro ao gerar snapshot: '+err.message);
+    });
 }
 
 function renderAll(){
