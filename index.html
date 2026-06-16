@@ -2173,13 +2173,86 @@ function exportCSV(){
 }
 
 function exportarDados(){
-  let exportados=0;
-  const rawMon=window._rawMonRoutes||(window._exportData&&window._exportData.monRoutes);
-  if(rawMon&&rawMon.length){const a=document.createElement('a');a.href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify({routes:rawMon},null,2));a.download='monitoramento_'+new Date().toISOString().slice(0,10)+'.json';a.click();exportados++;}
-  const rawCsv2=window._rawCsv2;
-  if(rawCsv2&&rawCsv2.length){const hdr=Object.keys(rawCsv2[0]);const csv=[hdr,...rawCsv2.map(r=>hdr.map(h=>{const v=String(r[h]==null?'':r[h]);return v.includes(',')?' "'+v+'"':v;}))].join('\n');const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);a.download='logistics_packages_'+new Date().toISOString().slice(0,10)+'.csv';a.click();exportados++;}
-  if(exportados===0){alert('Nenhum dado carregado para exportar.');return;}
-  alert(exportados+' arquivo(s) exportado(s) com sucesso!');
+  // Verifica se há dados carregados
+  const rawMon  = window._rawMonRoutes || [];
+  const rawCsv2 = window._rawCsv2 || [];
+  const rawCsv3 = window._rawCsv3 || [];
+  const rawSel  = window._rawCsvSellers || (csvSellers ? csvSellers : []);
+
+  if(!rawMon.length && !rawCsv2.length){
+    alert('Nenhum dado carregado. Importe os arquivos primeiro.');
+    return;
+  }
+
+  // Pega o HTML completo da página atual
+  const htmlAtual = document.documentElement.outerHTML;
+
+  // Monta script de injeção de dados que roda antes do renderAll()
+  const dataScript = `
+<script id="__snapshot_data__">
+(function(){
+  // Dados embutidos no snapshot
+  var _mon  = ${JSON.stringify(rawMon)};
+  var _csv2 = ${JSON.stringify(rawCsv2)};
+  var _csv3 = ${JSON.stringify(rawCsv3)};
+  var _sel  = ${JSON.stringify(rawSel)};
+
+  // Aguarda o DOM carregar e injeta
+  window.addEventListener('DOMContentLoaded', function(){
+    // Injeta variáveis globais
+    window._rawMonRoutes   = _mon;
+    window._rawCsv2        = _csv2;
+    window._rawCsv3        = _csv3;
+    window._rawCsvSellers  = _sel;
+
+    // Preenche as variáveis internas do painel
+    if(_mon.length)  { monRoutes = _mon; }
+    if(_csv2.length) { csv2 = _csv2; }
+    if(_csv3.length) { csv3 = _csv3; }
+    if(_sel.length)  { csvSellers = _sel; }
+
+    // Atualiza pills de status no topbar
+    ['src-json-st','src-col-st','src-ext-st'].forEach(function(id){
+      var el = document.getElementById(id);
+      if(el){ el.textContent='✓'; el.style.color='var(--grn-t)'; }
+    });
+
+    // Dispara renderização
+    setTimeout(function(){
+      try{ renderAll(); }catch(e){ console.warn('renderAll error',e); }
+      try{ if(csvSellers&&csvSellers.length) renderSellersSection(); }catch(e){}
+      // Fecha modal de importação caso esteja aberto
+      var m = document.getElementById('m-imp');
+      if(m) m.classList.remove('open');
+      // Remove o auto-open do modal de importação no snapshot
+      // (substitui o setTimeout que abre o modal quando não há dados)
+    }, 300);
+  });
+})();
+<\/script>`;
+
+  // Insere o script de dados ANTES do </body>
+  const snapshotHtml = htmlAtual.replace('</body>', dataScript + '\n</body>');
+
+  // Gera nome do arquivo com data/hora
+  const now  = new Date();
+  const dd   = String(now.getDate()).padStart(2,'0');
+  const mm   = String(now.getMonth()+1).padStart(2,'0');
+  const yyyy = now.getFullYear();
+  const hh   = String(now.getHours()).padStart(2,'0');
+  const mi   = String(now.getMinutes()).padStart(2,'0');
+  const nome = 'painel_firstmile_'+yyyy+mm+dd+'_'+hh+mi+'.html';
+
+  // Faz o download
+  const blob = new Blob([snapshotHtml], {type:'text/html;charset=utf-8'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = nome;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 // ══════════════════════════════════════════════
