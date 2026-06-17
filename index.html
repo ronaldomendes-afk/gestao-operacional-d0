@@ -2208,6 +2208,10 @@ function exportarDados(){
   showProg();
   setProgress(5, 'Buscando HTML base...');
 
+  // Força atualização da UI antes de iniciar o fetch pesado
+  requestAnimationFrame(function(){
+  requestAnimationFrame(function(){
+
   fetch(location.href)
     .then(function(r){
       setProgress(25, 'HTML carregado. Preparando dados...');
@@ -2309,6 +2313,9 @@ function exportarDados(){
       alert('Erro: '+err.message);
       if(btn){btn.textContent='Exportar Dados';btn.disabled=false;}
     });
+
+  }); // requestAnimationFrame 2
+  }); // requestAnimationFrame 1
 }
 
 function renderAll(){
