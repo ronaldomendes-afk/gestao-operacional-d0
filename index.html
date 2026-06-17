@@ -1438,7 +1438,7 @@ function loadSellers(inp){
   document.getElementById('fi4-name').textContent=f.name;
   Papa.parse(f,{header:true,skipEmptyLines:true,complete:r=>{
     csvSellers=r.data.filter(row=>row['Nome']&&row['Nome'].trim());
-    window._rawCsvSellers=csvSellers;window._txtSel=Papa.unparse(csvSellers);
+    window._rawCsvSellers=csvSellers;
     document.getElementById('fi4-info').textContent='✓ '+csvSellers.length+' registros carregados';
     document.getElementById('fi4-info').className='fi ok';
     renderSellersSection();
@@ -2076,10 +2076,10 @@ let monRoutes=null,csv2=null,csv3=null;
 const XD_HUBS_SET=new Set(['BRXSP10','ARENA','BRXSP16','CAMPINAS','BRXSP5','XMG1','BRPR01','XSP4','BRRJ02','BRXSC2','BRXSP14','BRXSP18','BRXES1','BRXGO1','BRXRS1','BRXPR4','BRXSP7','BRXMG3','BRXPR2','BRXPR3','BRXMG2','BRXSP11','BRXBA1','BRXPE1','BRXCE1']);
 
 function swMonTab(btn,id){document.querySelectorAll('#m-imp .tab').forEach(t=>t.classList.remove('on'));btn.classList.add('on');document.getElementById('mon-paste').style.display=id==='mon-paste'?'block':'none';document.getElementById('mon-file').style.display=id==='mon-file'?'block':'none';}
-function procMonJSON(){const txt=document.getElementById('pt-mon').value.trim();const info=document.getElementById('fi-mon-info');if(!txt){info.textContent='Cole o JSON primeiro.';info.className='fi er';return;}try{const data=JSON.parse(txt);const routes=data.routes||data;if(!Array.isArray(routes)) throw new Error('Array de rotas não encontrado.');window._rawMonRoutes=routes;window._txtMon=JSON.stringify({routes:routes});monRoutes=routes;info.textContent='✓ '+routes.length.toLocaleString('pt-BR')+' rotas';const jSt=document.getElementById('src-json-st');if(jSt){jSt.textContent='✓';jSt.style.color='var(--grn-t)';}info.className='fi ok';chkBoth();}catch(e){info.textContent='Erro: '+e.message;info.className='fi er';}}
-function loadMonFile(inp){const f=inp.files[0];if(!f) return;const info=document.getElementById('fi-mon-info');info.textContent='Lendo...';info.className='fi';const reader=new FileReader();reader.onload=e=>{try{const data=JSON.parse(e.target.result);const routes=data.routes||data;if(!Array.isArray(routes)) throw new Error('Formato inválido.');window._rawMonRoutes=routes;window._txtMon=JSON.stringify({routes:routes});monRoutes=routes;info.textContent='✓ '+routes.length.toLocaleString('pt-BR')+' rotas';info.className='fi ok';const jSt=document.getElementById('src-json-st');if(jSt){jSt.textContent='✓';jSt.style.color='var(--grn-t)';}chkBoth();}catch(err){info.textContent='Erro: '+err.message;info.className='fi er';}};reader.readAsText(f);}
-function loadPkg(inp){const f=inp.files[0];if(!f) return;const info=document.getElementById('fi2-info');info.textContent='Lendo…';info.className='fi';Papa.parse(f,{header:true,skipEmptyLines:true,complete:r=>{window._rawCsv2=r.data;window._txtCsv2=Papa.unparse(r.data);csv2=r.data;const xd=r.data.filter(row=>String(row['Tipo de colecta']||'').toUpperCase().trim()==='XD');info.textContent='✓ '+r.data.length.toLocaleString('pt-BR')+' linhas · '+xd.length.toLocaleString('pt-BR')+' XD';const cSt=document.getElementById('src-col-st');if(cSt){cSt.textContent='✓';cSt.style.color='var(--grn-t)';}info.className='fi ok';chkBoth();}});}
-function loadExt(inp){const f=inp.files[0];if(!f) return;const info=document.getElementById('fi3-info');info.textContent='Lendo…';info.className='fi';Papa.parse(f,{header:true,skipEmptyLines:true,complete:r=>{window._rawCsv3=r.data;window._txtCsv3=Papa.unparse(r.data);csv3=r.data;const conc=r.data.filter(row=>(row['Status Rota']||'').trim()==='Concluída').length;info.textContent='✓ '+r.data.length.toLocaleString('pt-BR')+' rotas · '+conc.toLocaleString('pt-BR')+' Concluídas';info.className='fi ok';const nm=document.getElementById('fi3-name');if(nm) nm.textContent=f.name;const eSt=document.getElementById('src-ext-st');if(eSt){eSt.textContent='✓';eSt.style.color='var(--grn-t)';}chkBoth();}});}
+function procMonJSON(){const txt=document.getElementById('pt-mon').value.trim();const info=document.getElementById('fi-mon-info');if(!txt){info.textContent='Cole o JSON primeiro.';info.className='fi er';return;}try{const data=JSON.parse(txt);const routes=data.routes||data;if(!Array.isArray(routes)) throw new Error('Array de rotas não encontrado.');window._rawMonRoutes=routes;monRoutes=routes;info.textContent='✓ '+routes.length.toLocaleString('pt-BR')+' rotas';const jSt=document.getElementById('src-json-st');if(jSt){jSt.textContent='✓';jSt.style.color='var(--grn-t)';}info.className='fi ok';chkBoth();}catch(e){info.textContent='Erro: '+e.message;info.className='fi er';}}
+function loadMonFile(inp){const f=inp.files[0];if(!f) return;const info=document.getElementById('fi-mon-info');info.textContent='Lendo...';info.className='fi';const reader=new FileReader();reader.onload=e=>{try{const data=JSON.parse(e.target.result);const routes=data.routes||data;if(!Array.isArray(routes)) throw new Error('Formato inválido.');window._rawMonRoutes=routes;monRoutes=routes;info.textContent='✓ '+routes.length.toLocaleString('pt-BR')+' rotas';info.className='fi ok';const jSt=document.getElementById('src-json-st');if(jSt){jSt.textContent='✓';jSt.style.color='var(--grn-t)';}chkBoth();}catch(err){info.textContent='Erro: '+err.message;info.className='fi er';}};reader.readAsText(f);}
+function loadPkg(inp){const f=inp.files[0];if(!f) return;const info=document.getElementById('fi2-info');info.textContent='Lendo…';info.className='fi';Papa.parse(f,{header:true,skipEmptyLines:true,complete:r=>{window._rawCsv2=r.data;csv2=r.data;const xd=r.data.filter(row=>String(row['Tipo de colecta']||'').toUpperCase().trim()==='XD');info.textContent='✓ '+r.data.length.toLocaleString('pt-BR')+' linhas · '+xd.length.toLocaleString('pt-BR')+' XD';const cSt=document.getElementById('src-col-st');if(cSt){cSt.textContent='✓';cSt.style.color='var(--grn-t)';}info.className='fi ok';chkBoth();}});}
+function loadExt(inp){const f=inp.files[0];if(!f) return;const info=document.getElementById('fi3-info');info.textContent='Lendo…';info.className='fi';Papa.parse(f,{header:true,skipEmptyLines:true,complete:r=>{window._rawCsv3=r.data;csv3=r.data;const conc=r.data.filter(row=>(row['Status Rota']||'').trim()==='Concluída').length;info.textContent='✓ '+r.data.length.toLocaleString('pt-BR')+' rotas · '+conc.toLocaleString('pt-BR')+' Concluídas';info.className='fi ok';const nm=document.getElementById('fi3-name');if(nm) nm.textContent=f.name;const eSt=document.getElementById('src-ext-st');if(eSt){eSt.textContent='✓';eSt.style.color='var(--grn-t)';}chkBoth();}});}
 function chkBoth(){const msg=document.getElementById('cross-msg');const btn=document.getElementById('btn-cross');if(monRoutes&&csv2){const extTxt=csv3?' + Extração ✓':' (sem Extração)';msg.textContent='Fontes prontas'+extTxt+'. Clique em Cruzar.';msg.className='fi ok';btn.style.display='inline-flex';}else if(monRoutes){msg.textContent='Monitoramento OK. Carregue o CSV de Coletas.';}else if(csv2){msg.textContent='Coletas OK. Cole o JSON do Monitoramento.';}}
 
 function inferStatus(r){
@@ -2173,83 +2173,43 @@ function exportCSV(){
 }
 
 function exportarDados(){
-  var hasMon  = window._txtMon  && window._txtMon.length  > 10;
-  var hasCsv2 = window._txtCsv2 && window._txtCsv2.length > 10;
+  var exportados = 0;
+  var now = new Date();
+  var ts  = now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0')+'_'+String(now.getHours()).padStart(2,'0')+String(now.getMinutes()).padStart(2,'0');
 
-  if(!hasMon && !hasCsv2){
-    alert('Nenhum dado carregado. Importe os arquivos primeiro.');
+  function dlBlob(content, filename, mime){
+    var blob = new Blob([content], {type: mime||'text/plain;charset=utf-8'});
+    var url  = URL.createObjectURL(blob);
+    var a    = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
+  }
+
+  var rawMon = window._rawMonRoutes;
+  if(rawMon && rawMon.length){
+    dlBlob(JSON.stringify({routes: rawMon}, null, 2), 'monitoramento_'+ts+'.json', 'application/json');
+    exportados++;
+  }
+
+  var rawCsv2 = window._rawCsv2;
+  if(rawCsv2 && rawCsv2.length){
+    dlBlob(Papa.unparse(rawCsv2), 'logistics_packages_'+ts+'.csv', 'text/csv;charset=utf-8');
+    exportados++;
+  }
+
+  var rawCsv3 = window._rawCsv3;
+  if(rawCsv3 && rawCsv3.length){
+    dlBlob(Papa.unparse(rawCsv3), 'extracao_logistics_'+ts+'.csv', 'text/csv;charset=utf-8');
+    exportados++;
+  }
+
+  if(exportados === 0){
+    alert('Nenhum dado carregado para exportar.');
     return;
   }
 
-  var btn = document.getElementById('btn-exportar');
-  if(btn){ btn.textContent='⏳ Gerando...'; btn.disabled=true; }
-
-  // Usa setTimeout para não travar a UI
-  setTimeout(function(){
-    try{
-      var hora = (typeof DATA_HORA_REF!=='undefined') ? DATA_HORA_REF : '--:--';
-      var txtSel = window._txtSel || '';
-
-      // Bloco de dados que será injetado no snapshot
-      var dataBlock = [
-        '<script id="__snap_data__">',
-        'window.__isSnapshot=true;',
-        'window.__snapHora="' + hora.replace(/"/g,'\"') + '";',
-        hasMon  ? 'window.__txtMon='  + JSON.stringify(window._txtMon)  + ';' : '',
-        hasCsv2 ? 'window.__txtCsv2=' + JSON.stringify(window._txtCsv2) + ';' : '',
-        (window._txtCsv3 ? 'window.__txtCsv3=' + JSON.stringify(window._txtCsv3) + ';' : ''),
-        (txtSel           ? 'window.__txtSel='  + JSON.stringify(txtSel)           + ';' : ''),
-        '<\/script>'
-      ].join('\n');
-
-      // Loader que processa os dados no snapshot ao abrir
-      var loaderBlock = [
-        '<script id="__snap_loader__">',
-        'window.addEventListener("load", function(){',
-        '  if(!window.__isSnapshot) return;',
-        '  if(window.__snapHora) DATA_HORA_REF=window.__snapHora;',
-        '  function parseTxt(txt, cb){ if(!txt) return; Papa.parse(txt,{header:true,skipEmptyLines:true,complete:function(r){cb(r.data);}}); }',
-        '  var done=0; var need=(window.__txtMon?1:0)+(window.__txtCsv2?1:0)+(window.__txtCsv3?1:0)+(window.__txtSel?1:0);',
-        '  function check(){ done++; if(done>=need){ renderAll(); if(csvSellers&&csvSellers.length){try{renderSellersSection();}catch(e){}} ["src-json-st","src-col-st","src-ext-st"].forEach(function(id){var el=document.getElementById(id);if(el){el.textContent="✓";el.style.color="var(--grn-t)";}});} }',
-        '  if(window.__txtMon){ try{ var d=JSON.parse(window.__txtMon); monRoutes=d.routes||d; window._rawMonRoutes=monRoutes; }catch(e){} done++; if(done>=need){check();} else check(); }',
-        '  parseTxt(window.__txtCsv2, function(d){ csv2=d; window._rawCsv2=d; check(); });',
-        '  parseTxt(window.__txtCsv3, function(d){ csv3=d; window._rawCsv3=d; check(); });',
-        '  parseTxt(window.__txtSel,  function(d){ csvSellers=d; check(); });',
-        '  if(need===0){ renderAll(); }',
-        '});',
-        '<\/script>'
-      ].join('\n');
-
-      fetch(location.href)
-        .then(function(r){ return r.text(); })
-        .then(function(html){
-          // Não abrir modal no snapshot
-          html = html.replace(
-            'setTimeout(()=>{if(Object.keys(ROUTES).length===0) openImp();},400);',
-            'if(!window.__isSnapshot){setTimeout(()=>{if(Object.keys(ROUTES).length===0) openImp();},400);}'
-          );
-          // Injeta antes do </head>
-          html = html.replace('</head>', dataBlock + '\n' + loaderBlock + '\n</head>');
-
-          var now=new Date();
-          var ts=now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0')+'_'+String(now.getHours()).padStart(2,'0')+String(now.getMinutes()).padStart(2,'0');
-          var blob=new Blob([html],{type:'text/html;charset=utf-8'});
-          var url=URL.createObjectURL(blob);
-          var a=document.createElement('a');
-          a.href=url; a.download='painel_firstmile_'+ts+'.html';
-          document.body.appendChild(a); a.click();
-          setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); },1000);
-          if(btn){ btn.innerHTML='<svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Exportar Dados'; btn.disabled=false; }
-        })
-        .catch(function(err){
-          alert('Erro: '+err.message);
-          if(btn){ btn.textContent='Exportar Dados'; btn.disabled=false; }
-        });
-    } catch(err){
-      alert('Erro ao gerar snapshot: '+err.message);
-      if(btn){ btn.textContent='Exportar Dados'; btn.disabled=false; }
-    }
-  }, 50);
+  alert(exportados + ' arquivo(s) exportado(s) com sucesso!');
 }
 
 function renderAll(){
