@@ -401,13 +401,13 @@ td{padding:9px 12px;vertical-align:middle;white-space:nowrap;font-weight:500}
 .sel-meta-name{color:var(--t1);font-weight:500;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sel-meta-val{font-family:'DM Mono',monospace;font-weight:700;color:var(--grn-t)}
 
-.export-progress{position:fixed;bottom:24px;right:24px;background:#fff;border:1px solid var(--bd);border-radius:14px;padding:16px 20px;box-shadow:0 8px 28px rgba(13,21,38,.16);z-index:9999;width:280px;display:none}
-.export-progress.show{display:block}
-.exp-title{font-size:12px;font-weight:700;color:var(--t1);margin-bottom:4px}
-.exp-step{font-size:11px;color:var(--t3);margin-bottom:10px}
-.exp-bar-bg{height:6px;border-radius:3px;background:var(--s3);overflow:hidden}
-.exp-bar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#2563EB,#7C3AED);transition:width .3s ease;width:0%}
-.exp-pct{font-size:10px;font-weight:600;color:var(--blu-t);margin-top:6px;text-align:right}
+.xprog-card{position:fixed;bottom:24px;right:24px;background:#fff;border:1px solid var(--bd);border-radius:14px;padding:16px 20px;box-shadow:0 8px 28px rgba(13,21,38,.16);z-index:9999;width:280px;display:none}
+.xprog-card.show{display:block}
+.xprog-title{font-size:12px;font-weight:700;color:var(--t1);margin-bottom:4px}
+.xprog-step{font-size:11px;color:var(--t3);margin-bottom:10px}
+.xprog-bg{height:6px;border-radius:3px;background:var(--s3);overflow:hidden}
+.xprog-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#2563EB,#7C3AED);transition:width .3s ease;width:0%}
+.xprog-pct{font-size:10px;font-weight:600;color:var(--blu-t);margin-top:6px;text-align:right}
 </style>
 <!-- cache-bust:20260610 -->
 </head>
@@ -2190,10 +2190,10 @@ function exportarDados(){
   }
 
   var btn  = document.getElementById('btn-exportar');
-  var prog = document.getElementById('exp-prog');
-  var bar  = document.getElementById('exp-bar');
-  var step = document.getElementById('exp-step');
-  var pct  = document.getElementById('exp-pct');
+  var prog = document.getElementById('xprog');
+  var bar  = document.getElementById('xprog-bar');
+  var step = document.getElementById('xprog-step');
+  var pct  = document.getElementById('xprog-pct');
 
   function setProgress(p, msg){
     if(bar)  bar.style.width  = p + '%';
@@ -2336,11 +2336,11 @@ renderAll();
 setTimeout(()=>{if(Object.keys(ROUTES).length===0) openImp();},400);
 </script>
 
-<div class="export-progress" id="exp-prog">
-  <div class="exp-title">⬇ Gerando snapshot...</div>
-  <div class="exp-step" id="exp-step">Iniciando...</div>
-  <div class="exp-bar-bg"><div class="exp-bar-fill" id="exp-bar"></div></div>
-  <div class="exp-pct" id="exp-pct">0%</div>
+<div class="xprog-card" id="xprog">
+  <div class="xprog-title">⬇ Gerando snapshot...</div>
+  <div class="xprog-step" id="xprog-step">Iniciando...</div>
+  <div class="xprog-bg"><div class="xprog-fill" id="xprog-bar"></div></div>
+  <div class="xprog-pct" id="xprog-pct">0%</div>
 </div>
 </body>
 </html>
