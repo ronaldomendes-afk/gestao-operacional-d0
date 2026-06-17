@@ -400,6 +400,14 @@ td{padding:9px 12px;vertical-align:middle;white-space:nowrap;font-weight:500}
 .sel-meta-row{display:flex;justify-content:space-between;align-items:center;padding:5px 8px;border-radius:6px;background:rgba(34,197,94,.07);font-size:11px}
 .sel-meta-name{color:var(--t1);font-weight:500;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sel-meta-val{font-family:'DM Mono',monospace;font-weight:700;color:var(--grn-t)}
+
+.export-progress{position:fixed;bottom:24px;right:24px;background:#fff;border:1px solid var(--bd);border-radius:14px;padding:16px 20px;box-shadow:0 8px 28px rgba(13,21,38,.16);z-index:9999;width:280px;display:none}
+.export-progress.show{display:block}
+.exp-title{font-size:12px;font-weight:700;color:var(--t1);margin-bottom:4px}
+.exp-step{font-size:11px;color:var(--t3);margin-bottom:10px}
+.exp-bar-bg{height:6px;border-radius:3px;background:var(--s3);overflow:hidden}
+.exp-bar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#2563EB,#7C3AED);transition:width .3s ease;width:0%}
+.exp-pct{font-size:10px;font-weight:600;color:var(--blu-t);margin-top:6px;text-align:right}
 </style>
 <!-- cache-bust:20260610 -->
 </head>
@@ -2181,73 +2189,123 @@ function exportarDados(){
     return;
   }
 
-  var btn = document.getElementById('btn-exportar');
+  var btn  = document.getElementById('btn-exportar');
+  var prog = document.getElementById('exp-prog');
+  var bar  = document.getElementById('exp-bar');
+  var step = document.getElementById('exp-step');
+  var pct  = document.getElementById('exp-pct');
+
+  function setProgress(p, msg){
+    if(bar)  bar.style.width  = p + '%';
+    if(pct)  pct.textContent  = p + '%';
+    if(step) step.textContent = msg;
+  }
+
+  function showProg(){ if(prog) prog.classList.add('show'); }
+  function hideProg(){ if(prog) prog.classList.remove('show'); }
+
   if(btn){ btn.textContent='⏳ Gerando...'; btn.disabled=true; }
+  showProg();
+  setProgress(5, 'Buscando HTML base...');
 
   fetch(location.href)
-    .then(function(r){ return r.text(); })
+    .then(function(r){
+      setProgress(25, 'HTML carregado. Preparando dados...');
+      return r.text();
+    })
     .then(function(html){
-      var hora = (typeof DATA_HORA_REF!=='undefined') ? DATA_HORA_REF : '--:--';
+      // Pequeno delay para UI atualizar
+      return new Promise(function(resolve){
+        setTimeout(function(){ resolve(html); }, 50);
+      });
+    })
+    .then(function(html){
+      setProgress(45, 'Codificando dados em base64...');
+      return new Promise(function(resolve){
+        setTimeout(function(){
+          var hora = (typeof DATA_HORA_REF!=='undefined') ? DATA_HORA_REF : '--:--';
+          var dados = {
+            mon:  window._txtMon  || '',
+            csv2: window._txtCsv2 || '',
+            csv3: window._txtCsv3 || '',
+            sel:  window._txtSel  || '',
+            hora: hora
+          };
+          var dadosB64 = btoa(unescape(encodeURIComponent(JSON.stringify(dados))));
+          resolve({html: html, b64: dadosB64});
+        }, 50);
+      });
+    })
+    .then(function(obj){
+      setProgress(70, 'Montando snapshot HTML...');
+      return new Promise(function(resolve){
+        setTimeout(function(){
+          var snapScript =
+            '<script id="__sd__" data-b="' + obj.b64 + '">' +
+            'window.__isSnapshot=true;' +
+            'var __d=JSON.parse(decodeURIComponent(escape(atob(document.getElementById("__sd__").getAttribute("data-b")))));' +
+            'window.__sd=__d;' +
+            '<\/script>';
 
-      // Monta os dados como strings escapadas dentro de um bloco <script>
-      // Usa btoa/atob para evitar qualquer problema com caracteres especiais
-      var dados = {
-        mon:  window._txtMon  || '',
-        csv2: window._txtCsv2 || '',
-        csv3: window._txtCsv3 || '',
-        sel:  window._txtSel  || '',
-        hora: hora
-      };
+          var loaderScript =
+            '<script id="__sl__">' +
+            'window.addEventListener("load",function(){' +
+            '  if(!window.__isSnapshot)return;' +
+            '  var d=window.__sd;' +
+            '  if(d.hora)DATA_HORA_REF=d.hora;' +
+            '  var done=0;' +
+            '  var need=(d.mon?1:0)+(d.csv2?1:0)+(d.csv3?1:0)+(d.sel?1:0);' +
+            '  if(need===0){renderAll();return;}' +
+            '  function fin(){done++;if(done>=need){' +
+            '    renderAll();' +
+            '    if(csvSellers&&csvSellers.length){try{renderSellersSection();}catch(e){}}' +
+            '    ["src-json-st","src-col-st","src-ext-st"].forEach(function(id){var el=document.getElementById(id);if(el){el.textContent="\\u2713";el.style.color="var(--grn-t)";}});' +
+            '  }}' +
+            '  if(d.mon){try{var j=JSON.parse(d.mon);monRoutes=j.routes||j;window._rawMonRoutes=monRoutes;}catch(e){}fin();}' +
+            '  function parseCsv(txt,cb){if(!txt)return;Papa.parse(txt,{header:true,skipEmptyLines:true,complete:function(r){cb(r.data);fin();}});}' +
+            '  parseCsv(d.csv2,function(r){csv2=r;window._rawCsv2=r;});' +
+            '  parseCsv(d.csv3,function(r){csv3=r;window._rawCsv3=r;});' +
+            '  parseCsv(d.sel, function(r){csvSellers=r;});' +
+            '});' +
+            '<\/script>';
 
-      // Codifica em base64 para evitar quebrar o HTML
-      var dadosB64 = btoa(unescape(encodeURIComponent(JSON.stringify(dados))));
-
-      var snapScript = '<script id="__sd__" data-b="' + dadosB64 + '">' +
-        'window.__isSnapshot=true;' +
-        'var __d=JSON.parse(decodeURIComponent(escape(atob(document.getElementById("__sd__").getAttribute("data-b")))));' +
-        'window.__sd=__d;' +
-        '<\/script>';
-
-      var loaderScript = '<script id="__sl__">' +
-        'window.addEventListener("load",function(){' +
-        '  if(!window.__isSnapshot)return;' +
-        '  var d=window.__sd;' +
-        '  if(d.hora)DATA_HORA_REF=d.hora;' +
-        '  var done=0;' +
-        '  var need=(d.mon?1:0)+(d.csv2?1:0)+(d.csv3?1:0)+(d.sel?1:0);' +
-        '  if(need===0){renderAll();return;}' +
-        '  function fin(){done++;if(done>=need){' +
-        '    renderAll();' +
-        '    if(csvSellers&&csvSellers.length){try{renderSellersSection();}catch(e){}}' +
-        '    ["src-json-st","src-col-st","src-ext-st"].forEach(function(id){var el=document.getElementById(id);if(el){el.textContent="\\u2713";el.style.color="var(--grn-t)";}});' +
-        '  }}' +
-        '  if(d.mon){try{var j=JSON.parse(d.mon);monRoutes=j.routes||j;window._rawMonRoutes=monRoutes;}catch(e){}done++;if(done>=need){fin();}}' +
-        '  function parseCsv(txt,cb){if(!txt)return;Papa.parse(txt,{header:true,skipEmptyLines:true,complete:function(r){cb(r.data);fin();}});}' +
-        '  parseCsv(d.csv2,function(r){csv2=r;window._rawCsv2=r;});' +
-        '  parseCsv(d.csv3,function(r){csv3=r;window._rawCsv3=r;});' +
-        '  parseCsv(d.sel, function(r){csvSellers=r;});' +
-        '});' +
-        '<\/script>';
-
-      // Não abrir modal no snapshot
-      html = html.replace(
-        'setTimeout(()=>{if(Object.keys(ROUTES).length===0) openImp();},400);',
-        'if(!window.__isSnapshot){setTimeout(()=>{if(Object.keys(ROUTES).length===0) openImp();},400);}'
-      );
-
-      html = html.replace('</head>', snapScript + '\n' + loaderScript + '\n</head>');
-
-      var now=new Date();
-      var ts=now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0')+'_'+String(now.getHours()).padStart(2,'0')+String(now.getMinutes()).padStart(2,'0');
-      var blob=new Blob([html],{type:'text/html;charset=utf-8'});
-      var url=URL.createObjectURL(blob);
-      var a=document.createElement('a');
+          var snap = obj.html;
+          snap = snap.replace(
+            'setTimeout(()=>{if(Object.keys(ROUTES).length===0) openImp();},400);',
+            'if(!window.__isSnapshot){setTimeout(()=>{if(Object.keys(ROUTES).length===0) openImp();},400);}'
+          );
+          snap = snap.replace('</head>', snapScript + '\n' + loaderScript + '\n</head>');
+          resolve(snap);
+        }, 50);
+      });
+    })
+    .then(function(snap){
+      setProgress(90, 'Preparando download...');
+      return new Promise(function(resolve){
+        setTimeout(function(){ resolve(snap); }, 50);
+      });
+    })
+    .then(function(snap){
+      var now = new Date();
+      var ts  = now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0')+'_'+String(now.getHours()).padStart(2,'0')+String(now.getMinutes()).padStart(2,'0');
+      var blob = new Blob([snap],{type:'text/html;charset=utf-8'});
+      var url  = URL.createObjectURL(blob);
+      var a    = document.createElement('a');
       a.href=url; a.download='painel_firstmile_'+ts+'.html';
       document.body.appendChild(a); a.click();
       setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
-      if(btn){btn.innerHTML='<svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Exportar Dados';btn.disabled=false;}
+
+      setProgress(100, 'Download iniciado!');
+      setTimeout(function(){
+        hideProg();
+        if(btn){
+          btn.innerHTML='<svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Exportar Dados';
+          btn.disabled=false;
+        }
+      }, 2000);
     })
     .catch(function(err){
+      hideProg();
       alert('Erro: '+err.message);
       if(btn){btn.textContent='Exportar Dados';btn.disabled=false;}
     });
@@ -2277,5 +2335,12 @@ function renderAll(){
 renderAll();
 setTimeout(()=>{if(Object.keys(ROUTES).length===0) openImp();},400);
 </script>
+
+<div class="export-progress" id="exp-prog">
+  <div class="exp-title">⬇ Gerando snapshot...</div>
+  <div class="exp-step" id="exp-step">Iniciando...</div>
+  <div class="exp-bar-bg"><div class="exp-bar-fill" id="exp-bar"></div></div>
+  <div class="exp-pct" id="exp-pct">0%</div>
+</div>
 </body>
 </html>
