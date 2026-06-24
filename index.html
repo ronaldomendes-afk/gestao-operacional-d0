@@ -607,16 +607,23 @@ td{padding:9px 12px;vertical-align:middle;white-space:nowrap;font-weight:500}
       </div>
       <!-- tab: rotas em atraso -->
       <div id="hdt-rotas">
-        <div class="drill-tipo-wrap">
-          <label for="hd-tipo-sel">Tipo de rota:</label>
-          <select class="drill-tipo-sel" id="hd-tipo-sel" onchange="setDrillTipo(this.value)">
-            <option value="todas">Todos os tipos</option>
-            <option value="XD Drop">XD Drop</option>
-            <option value="Cross Dock">Cross Dock</option>
-            <option value="Fulfillment">Fulfillment</option>
-            <option value="Outros">Outros</option>
-          </select>
-          <span class="drill-sep"></span>
+        <div class="drill-tipo-wrap" style="flex-wrap:wrap;gap:10px">
+          <div style="display:flex;align-items:center;gap:6px">
+            <label for="hd-tipo-sel" style="font-size:11px;font-weight:600;color:var(--t2);white-space:nowrap">Tipo:</label>
+            <select class="drill-tipo-sel" id="hd-tipo-sel" onchange="applyDrillFilters()">
+              <option value="todas">Todos os tipos</option>
+              <option value="XD Drop">XD Drop</option>
+              <option value="Cross Dock">Cross Dock</option>
+              <option value="Fulfillment">Fulfillment</option>
+              <option value="Outros">Outros</option>
+            </select>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <label for="hd-transp-sel" style="font-size:11px;font-weight:600;color:var(--t2);white-space:nowrap">Transportadora:</label>
+            <select class="drill-tipo-sel" id="hd-transp-sel" onchange="applyDrillFilters()" style="max-width:180px">
+              <option value="todas">Todas</option>
+            </select>
+          </div>
           <span style="font-size:10px;color:var(--t3)" id="hd-tipo-count"></span>
         </div>
         <div class="drill-filters" id="hd-rotas-filters">
@@ -1849,6 +1856,7 @@ function switchDrillTab(btn, tabId){
 let _drillRoutes=[];
 let _drillFilterRotas='atraso';
 let _drillFilterTipo='todas';
+let _drillFilterTransp='todas';
 
 function buildDrillRotas(routes, hubName){
   _drillRoutes=routes;
@@ -1857,6 +1865,10 @@ function buildDrillRotas(routes, hubName){
   // reseta select de tipo
   const tipSel=document.getElementById('hd-tipo-sel');
   if(tipSel) tipSel.value='todas';
+  _drillFilterTransp='todas';
+  populateTranspSelect(routes);
+  const transpSel=document.getElementById('hd-transp-sel');
+  if(transpSel) transpSel.value='todas';
   document.getElementById('hd-tipo-count').textContent='';
   // reseta botões de status
   document.querySelectorAll('#hd-rotas-filters .drill-filter-btn').forEach(b=>b.classList.remove('on'));
@@ -1890,10 +1902,24 @@ function setDrillTipo(tipo){
   _drillFilterTipo=tipo;
   renderDrillRotas();
 }
+function applyDrillFilters(){
+  _drillFilterTipo=document.getElementById('hd-tipo-sel').value;
+  _drillFilterTransp=document.getElementById('hd-transp-sel').value;
+  renderDrillRotas();
+}
+function populateTranspSelect(routes){
+  const sel=document.getElementById('hd-transp-sel');
+  if(!sel) return;
+  const transpSet=new Set(routes.map(r=>r.transp||'—').filter(Boolean));
+  const sorted=[...transpSet].sort();
+  sel.innerHTML='<option value="todas">Todas</option>'+
+    sorted.map(t=>`<option value="${t}">${t}</option>`).join('');
+}
 
 function renderDrillRotas(){
   // aplica filtro de tipo primeiro
-  const baseRoutes=_drillFilterTipo==='todas'?_drillRoutes:_drillRoutes.filter(r=>r.tipoRota===_drillFilterTipo);
+  let baseRoutes=_drillFilterTipo==='todas'?_drillRoutes:_drillRoutes.filter(r=>r.tipoRota===_drillFilterTipo);
+  if(_drillFilterTransp&&_drillFilterTransp!=='todas') baseRoutes=baseRoutes.filter(r=>(r.transp||'—')===_drillFilterTransp);
   // atualiza contagem do tipo
   const tipCount=document.getElementById('hd-tipo-count');
   if(tipCount) tipCount.textContent=_drillFilterTipo==='todas'?'':'('+baseRoutes.length+' rotas)';
