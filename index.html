@@ -1958,8 +1958,7 @@ function renderDrillRotas(){
     return`<div class="hub-rota-row ${isAtr?'atraso':''}">
       <span class="hrt-id">#${r.id}</span>
       <span class="hrt-placa">${r.placa||'—'}</span>
-      <span class="hrt-transp" title="${r.motorista||''}" style="min-width:120px">${(r.motorista||'—').slice(0,20)}</span>
-      <span style="font-size:10px;color:var(--t2);min-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.transp||''}">${(r.transp||'—').slice(0,18)}</span>
+      <span class="hrt-transp" title="${r.transp||''}">${(r.transp||'—').slice(0,26)}</span>
       <span class="hrt-stats">
         <span style="font-size:10px;color:var(--t3)">${r.tipoRota}</span>
         <span class="hrt-chip ${chipCls}">${chipTxt}</span>
@@ -2065,8 +2064,7 @@ function buildDrillTodas(routes){
     return`<div class="hub-rota-row ${isAtr?'atraso':''}">
       <span class="hrt-id">#${r.id}</span>
       <span class="hrt-placa">${r.placa||'—'}</span>
-      <span class="hrt-transp" title="${r.motorista||''}" style="min-width:120px">${(r.motorista||'—').slice(0,20)}</span>
-      <span style="font-size:10px;color:var(--t2);min-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.transp||''}">${(r.transp||'—').slice(0,18)}</span>
+      <span class="hrt-transp" title="${r.transp||''}">${(r.transp||'—').slice(0,26)}</span>
       <span class="hrt-stats">
         <span style="font-size:10px;color:var(--t3)">${r.tipoRota}</span>
         <span class="hrt-chip ${chipCls}">${chipTxt}</span>
