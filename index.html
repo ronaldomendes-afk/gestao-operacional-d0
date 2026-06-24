@@ -457,6 +457,13 @@ td{padding:9px 12px;vertical-align:middle;white-space:nowrap;font-weight:500}
 .drill-filter-btn.on.f-pen{background:var(--amb-bg);color:var(--amb-t);border-color:var(--amb-bd)}
 .drill-filter-btn.on.f-ok{background:var(--grn-bg);color:var(--grn-t);border-color:var(--grn-bd)}
 .drill-count{font-size:10px;color:var(--t3);margin-left:4px}
+
+.drill-tipo-wrap{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.drill-tipo-wrap label{font-size:11px;font-weight:600;color:var(--t2);white-space:nowrap}
+.drill-tipo-sel{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;padding:5px 28px 5px 10px;border-radius:var(--r);border:1.5px solid var(--bd2);background:var(--s1);color:var(--t1);cursor:pointer;outline:none;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238896B2' stroke-width='2.5' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;transition:border-color .15s}
+.drill-tipo-sel:focus{border-color:var(--blu)}
+.drill-tipo-sel:hover{border-color:var(--blu-t)}
+.drill-sep{width:1px;height:20px;background:var(--bd);flex-shrink:0}
 </style>
 <!-- cache-bust:20260610 -->
 </head>
@@ -600,8 +607,20 @@ td{padding:9px 12px;vertical-align:middle;white-space:nowrap;font-weight:500}
       </div>
       <!-- tab: rotas em atraso -->
       <div id="hdt-rotas">
+        <div class="drill-tipo-wrap">
+          <label for="hd-tipo-sel">Tipo de rota:</label>
+          <select class="drill-tipo-sel" id="hd-tipo-sel" onchange="setDrillTipo(this.value)">
+            <option value="todas">Todos os tipos</option>
+            <option value="XD Drop">XD Drop</option>
+            <option value="Cross Dock">Cross Dock</option>
+            <option value="Fulfillment">Fulfillment</option>
+            <option value="Outros">Outros</option>
+          </select>
+          <span class="drill-sep"></span>
+          <span style="font-size:10px;color:var(--t3)" id="hd-tipo-count"></span>
+        </div>
         <div class="drill-filters" id="hd-rotas-filters">
-          <span style="font-size:11px;font-weight:600;color:var(--t2)">Filtrar:</span>
+          <span style="font-size:11px;font-weight:600;color:var(--t2)">Status:</span>
           <button class="drill-filter-btn f-atr on" onclick="setDrillFilter('rotas','atraso',this)">🔴 Atraso <span class="drill-count" id="cnt-atraso"></span></button>
           <button class="drill-filter-btn f-and" onclick="setDrillFilter('rotas','andamento',this)">🔵 Andamento <span class="drill-count" id="cnt-andamento"></span></button>
           <button class="drill-filter-btn f-pen" onclick="setDrillFilter('rotas','pendente',this)">🟡 Pendente <span class="drill-count" id="cnt-pendente"></span></button>
@@ -1829,11 +1848,17 @@ function switchDrillTab(btn, tabId){
 
 let _drillRoutes=[];
 let _drillFilterRotas='atraso';
+let _drillFilterTipo='todas';
 
 function buildDrillRotas(routes, hubName){
   _drillRoutes=routes;
   _drillFilterRotas='atraso';
-  // reseta botões
+  _drillFilterTipo='todas';
+  // reseta select de tipo
+  const tipSel=document.getElementById('hd-tipo-sel');
+  if(tipSel) tipSel.value='todas';
+  document.getElementById('hd-tipo-count').textContent='';
+  // reseta botões de status
   document.querySelectorAll('#hd-rotas-filters .drill-filter-btn').forEach(b=>b.classList.remove('on'));
   const firstBtn=document.querySelector('#hd-rotas-filters .drill-filter-btn');
   if(firstBtn) firstBtn.classList.add('on');
@@ -1861,9 +1886,20 @@ function setDrillFilter(tab, filter, btn){
   btn.classList.add('on');
   renderDrillRotas();
 }
+function setDrillTipo(tipo){
+  _drillFilterTipo=tipo;
+  renderDrillRotas();
+}
 
 function renderDrillRotas(){
-  const routes=_drillRoutes;
+  // aplica filtro de tipo primeiro
+  const baseRoutes=_drillFilterTipo==='todas'?_drillRoutes:_drillRoutes.filter(r=>r.tipoRota===_drillFilterTipo);
+  // atualiza contagem do tipo
+  const tipCount=document.getElementById('hd-tipo-count');
+  if(tipCount) tipCount.textContent=_drillFilterTipo==='todas'?'':'('+baseRoutes.length+' rotas)';
+  // atualiza contadores de status com base no tipo selecionado
+  updateDrillCounts(baseRoutes);
+  const routes=baseRoutes;
   let rows;
   if(_drillFilterRotas==='atraso')
     rows=routes.filter(r=>r.status==='Em andamento'&&r.falhas>0).sort((a,b)=>b.falhas-a.falhas);
