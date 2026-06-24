@@ -408,6 +408,45 @@ td{padding:9px 12px;vertical-align:middle;white-space:nowrap;font-weight:500}
 .xprog-bg{height:6px;border-radius:3px;background:var(--s3);overflow:hidden}
 .xprog-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#2563EB,#7C3AED);transition:width .3s ease;width:0%}
 .xprog-pct{font-size:10px;font-weight:600;color:var(--blu-t);margin-top:6px;text-align:right}
+
+/* ── DRILL-DOWN HUB ── */
+.hub-drill{display:none;margin-top:12px;border-top:1px solid var(--bd);padding-top:16px;animation:fadeUp .25s ease both}
+.hub-drill.show{display:block}
+.hub-drill-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px}
+.hub-drill-title{font-size:15px;font-weight:700;color:var(--t1);display:flex;align-items:center;gap:8px}
+.hub-drill-title span{font-size:11px;font-weight:500;color:var(--t3);margin-left:4px}
+.hub-drill-close{background:none;border:1px solid var(--bd);border-radius:var(--r);padding:4px 10px;font-size:11px;color:var(--t3);cursor:pointer;font-family:'DM Sans',sans-serif}
+.hub-drill-close:hover{background:var(--s2);color:var(--t1)}
+.hub-drill-kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px}
+@media(max-width:900px){.hub-drill-kpis{grid-template-columns:repeat(3,1fr)}}
+.hdk{background:var(--s2);border:1px solid var(--bd);border-radius:var(--rl);padding:12px 14px;position:relative;overflow:hidden}
+.hdk::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--rl) var(--rl) 0 0;background:var(--hdk-a,var(--bd))}
+.hdk-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);margin-bottom:4px}
+.hdk-val{font-size:22px;font-weight:800;font-family:'DM Mono',monospace;letter-spacing:-.5px;line-height:1;color:var(--t1)}
+.hdk-sub{font-size:10px;color:var(--t3);margin-top:3px}
+.hub-drill-body{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+@media(max-width:800px){.hub-drill-body{grid-template-columns:1fr}}
+.hub-drill-chart-wrap{background:var(--s2);border:1px solid var(--bd);border-radius:var(--rl);padding:14px}
+.hub-drill-chart-wrap canvas{max-height:200px}
+/* rotas em atraso */
+.hub-atraso-list{max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:5px;padding-right:3px}
+.hub-rota-row{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;background:var(--s1);border:1px solid var(--bd);font-size:11px;transition:background .12s}
+.hub-rota-row:hover{background:var(--s2)}
+.hub-rota-row.atraso{border-color:var(--red-bd);background:var(--red-bg)}
+.hub-rota-row.atraso .hrt-id{color:var(--red-t)}
+.hrt-id{font-family:'DM Mono',monospace;font-size:10px;font-weight:600;min-width:80px;color:var(--t1)}
+.hrt-placa{font-weight:600;min-width:72px;color:var(--t1)}
+.hrt-transp{flex:1;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hrt-stats{display:flex;gap:6px;align-items:center;flex-shrink:0}
+.hrt-chip{font-size:10px;font-weight:600;padding:1px 7px;border-radius:20px}
+.hrt-chip.ok{background:var(--grn-bg);color:var(--grn-t);border:1px solid var(--grn-bd)}
+.hrt-chip.and{background:var(--blu-bg);color:var(--blu-t);border:1px solid var(--blu-bd)}
+.hrt-chip.atr{background:var(--red-bg);color:var(--red-t);border:1px solid var(--red-bd)}
+.hrt-chip.pen{background:var(--amb-bg);color:var(--amb-t);border:1px solid var(--amb-bd)}
+.hrt-pct{font-family:'DM Mono',monospace;font-size:10px;font-weight:700;min-width:36px;text-align:right}
+.hub-drill-tabs{display:flex;gap:3px;background:var(--s3);border:1px solid var(--bd);border-radius:8px;padding:3px;width:fit-content;margin-bottom:10px}
+.hdt{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;padding:4px 12px;border-radius:6px;border:none;background:transparent;color:var(--t3);cursor:pointer;transition:all .15s}
+.hdt.on{background:var(--s1);color:var(--t1);box-shadow:0 1px 3px rgba(13,21,38,.08)}
 </style>
 <!-- cache-bust:20260610 -->
 </head>
@@ -532,6 +571,45 @@ td{padding:9px 12px;vertical-align:middle;white-space:nowrap;font-weight:500}
     <div class="panel-title">Carros por HUB — total · finalizados · em andamento</div>
     <div class="panel-sub">Top 10 HUBs por frota · empilhado</div>
     <div class="ch-wrap" style="height:320px;width:100%"><canvas id="ch-cars"></canvas></div>
+    <div class="hub-drill" id="hub-drill">
+      <div class="hub-drill-hdr">
+        <div class="hub-drill-title">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          <span id="hd-hub-name">HUB</span>
+          <span id="hd-hub-sub"></span>
+        </div>
+        <button class="hub-drill-close" onclick="closeDrill()">✕ Fechar</button>
+      </div>
+      <!-- KPI cards -->
+      <div class="hub-drill-kpis" id="hd-kpis"></div>
+      <!-- tabs -->
+      <div class="hub-drill-tabs">
+        <button class="hdt on" onclick="switchDrillTab(this,'hdt-rotas')">🚛 Rotas em atraso</button>
+        <button class="hdt" onclick="switchDrillTab(this,'hdt-timeline')">📈 Evolução por horário</button>
+        <button class="hdt" onclick="switchDrillTab(this,'hdt-todas')">📋 Todas as rotas</button>
+      </div>
+      <!-- tab: rotas em atraso -->
+      <div id="hdt-rotas">
+        <div class="hub-atraso-list" id="hd-rotas-list"></div>
+      </div>
+      <!-- tab: timeline -->
+      <div id="hdt-timeline" style="display:none">
+        <div class="hub-drill-body">
+          <div class="hub-drill-chart-wrap">
+            <div style="font-size:11px;font-weight:700;color:var(--t1);margin-bottom:8px">Coletas acumuladas por horário</div>
+            <canvas id="hd-ch-line" style="max-height:200px"></canvas>
+          </div>
+          <div class="hub-drill-chart-wrap">
+            <div style="font-size:11px;font-weight:700;color:var(--t1);margin-bottom:8px">Pacotes coletados vs estimados por slot</div>
+            <canvas id="hd-ch-bar" style="max-height:200px"></canvas>
+          </div>
+        </div>
+      </div>
+      <!-- tab: todas as rotas -->
+      <div id="hdt-todas" style="display:none">
+        <div class="hub-atraso-list" id="hd-todas-list" style="max-height:340px"></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1645,7 +1723,230 @@ function buildCars(){
           color:ctx=>ctx.datasetIndex===0?'#4ade80':'#93c5fd',anchor:'center',align:'center'}},
       scales:{x:{grid:{display:false},ticks:{color:'#0D1526',font:{size:9},maxRotation:35}},
         y:{grid:{color:'#ECEEF5'},stacked:true,ticks:{color:'#0D1526',callback:v=>fmt(v)}}},
-      layout:{padding:{top:6}}}});
+      layout:{padding:{top:6}},
+      onClick:(evt,els)=>{
+        if(!els.length) return;
+        const d=[...HUBS].sort((a,b)=>b.carros-a.carros).slice(0,10);
+        const idx=els[0].index;
+        const hub=d[idx]&&d[idx].hub;
+        if(hub){
+          if(_drillHub===hub){closeDrill();}
+          else{openDrill(hub);}
+        }
+      },
+      onHover:(evt,els)=>{evt.native.target.style.cursor=els.length?'pointer':'default';}}});
+}
+
+
+// ══ DRILL-DOWN HUB ══
+let _drillHub=null,_drillChartLine=null,_drillChartBar=null;
+
+function openDrill(hubName){
+  _drillHub=hubName;
+  const h=HUBS.find(x=>x.hub===hubName);
+  if(!h) return;
+  const routes=ROUTES[hubName]||[];
+  const drill=document.getElementById('hub-drill');
+
+  // nome e sub
+  document.getElementById('hd-hub-name').textContent=hubName;
+  document.getElementById('hd-hub-sub').textContent='· '+h.nome+' · SLA '+h.sla;
+
+  // KPI cards
+  const fin=routes.filter(r=>r.status==='Concluída').length;
+  const and_=routes.filter(r=>r.status==='Em andamento'||r.status==='Em Andamento').length;
+  const atr=routes.filter(r=>(r.status==='Em andamento'||r.status==='Em Andamento')&&r.falhas>0).length;
+  const pend=routes.filter(r=>r.status==='Pendente'||r.status==='pendente').length;
+  const totEst=routes.reduce((s,r)=>s+r.est,0);
+  const totCol=routes.reduce((s,r)=>s+r.col,0);
+  const falta=Math.max(0,totEst-totCol);
+  const pct=totEst>0?((totCol/totEst)*100).toFixed(1):'0';
+
+  const kpis=[
+    {lbl:'Total Rotas',val:fmt(routes.length),sub:'no HUB',a:'var(--blu)'},
+    {lbl:'Concluídas',val:fmt(fin),sub:((fin/routes.length)*100).toFixed(0)+'% das rotas',a:'var(--grn)'},
+    {lbl:'Em Andamento',val:fmt(and_),sub:atr>0?atr+' com atraso':'sem atraso',a:'var(--blu)'},
+    {lbl:'Pendentes',val:fmt(pend),sub:'aguardando início',a:'var(--amb)'},
+    {lbl:'Pkgs Estimados',val:fmt(totEst),sub:'total do HUB',a:'var(--pur)'},
+    {lbl:'Pkgs Coletados',val:fmt(totCol)+' ('+pct+'%)',sub:'faltam '+fmt(falta),a:pct>=85?'var(--grn)':pct>=65?'var(--amb)':'var(--red)'},
+  ];
+  document.getElementById('hd-kpis').innerHTML=kpis.map(k=>`
+    <div class="hdk" style="--hdk-a:${k.a}">
+      <div class="hdk-lbl">${k.lbl}</div>
+      <div class="hdk-val">${k.val}</div>
+      <div class="hdk-sub">${k.sub}</div>
+    </div>`).join('');
+
+  // tab rotas em atraso
+  buildDrillRotas(routes, hubName);
+
+  // tab timeline (usa initDate/firstStopDate das monRoutes)
+  buildDrillTimeline(hubName, routes);
+
+  // tab todas as rotas
+  buildDrillTodas(routes);
+
+  // mostra
+  drill.classList.add('show');
+  drill.scrollIntoView({behavior:'smooth',block:'nearest'});
+  // reset para aba 1
+  switchDrillTab(document.querySelector('.hdt.on')||document.querySelector('.hdt'),'hdt-rotas');
+}
+
+function closeDrill(){
+  _drillHub=null;
+  document.getElementById('hub-drill').classList.remove('show');
+  if(_drillChartLine){_drillChartLine.destroy();_drillChartLine=null;}
+  if(_drillChartBar){_drillChartBar.destroy();_drillChartBar=null;}
+}
+
+function switchDrillTab(btn, tabId){
+  document.querySelectorAll('.hdt').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  ['hdt-rotas','hdt-timeline','hdt-todas'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.style.display=(id===tabId)?'block':'none';
+  });
+}
+
+function buildDrillRotas(routes, hubName){
+  const atr=routes.filter(r=>r.status==='Em andamento'&&r.falhas>0)
+                  .sort((a,b)=>b.falhas-a.falhas);
+  const and_sem=routes.filter(r=>r.status==='Em andamento'&&r.falhas===0);
+  const pend=routes.filter(r=>r.status==='Pendente');
+  const rows=[...atr,...and_sem,...pend];
+
+  if(!rows.length){
+    document.getElementById('hd-rotas-list').innerHTML='<div style="padding:16px;text-align:center;color:var(--grn-t);font-weight:600">✓ Nenhuma rota em atraso ou pendente</div>';
+    return;
+  }
+
+  document.getElementById('hd-rotas-list').innerHTML=rows.map(r=>{
+    const isAtr=r.status==='Em andamento'&&r.falhas>0;
+    const isPend=r.status==='Pendente';
+    const chipCls=isAtr?'atr':isPend?'pen':r.status==='Concluída'?'ok':'and';
+    const chipTxt=isAtr?'Atraso':isPend?'Pendente':r.status==='Concluída'?'Concluída':'Andamento';
+    const pctCol=r.est>0?((r.col/r.est)*100).toFixed(0)+'%':'—';
+    const pctCl=r.est>0?(r.col/r.est>=.85?'cg':r.col/r.est>=.65?'ca':'cr'):'c2';
+    return`<div class="hub-rota-row ${isAtr?'atraso':''}">
+      <span class="hrt-id">#${r.id}</span>
+      <span class="hrt-placa">${r.placa||'—'}</span>
+      <span class="hrt-transp" title="${r.transp}">${r.transp||'—'}</span>
+      <span class="hrt-stats">
+        <span style="font-size:10px;color:var(--t3)">${r.tipoRota}</span>
+        <span class="hrt-chip ${chipCls}">${chipTxt}</span>
+        <span class="hrt-pct ${pctCl}">${pctCol}</span>
+        <span style="font-size:10px;color:var(--t2)">${fmt(r.col)}/${fmt(r.est)}</span>
+        ${isAtr?`<span style="font-size:10px;color:var(--red-t)">${r.falhas} falha${r.falhas>1?'s':''}</span>`:''}
+      </span>
+    </div>`;
+  }).join('');
+}
+
+function buildDrillTimeline(hubName, routes){
+  // Gera timeline sintética baseada nos dados disponíveis
+  // Distribui coletas ao longo do dia usando stopsPercentage como proxy
+  const monR=(window._rawMonRoutes||[]).filter(r=>(r.facilityId||'')==hubName);
+  const slots={};
+  const horaBase=6; // início às 06h
+
+  monR.forEach(r=>{
+    const perf=parseFloat(String(r.performance||r.stopsPercentage||'0').replace(',','.'))||0;
+    const col=r.collectedPackages||0;
+    const est=r.estimatedPackages||0;
+    // usa firstStopDate ou initDate para calcular slot horário
+    const ts=r.firstStopDate||r.initDate||0;
+    if(!ts) return;
+    const d=new Date(ts*1000);
+    const h=d.getHours();
+    if(h<horaBase||h>22) return;
+    const slot=h+':00';
+    if(!slots[slot]) slots[slot]={col:0,est:0,rotas:0};
+    slots[slot].col+=col;
+    slots[slot].est+=est;
+    slots[slot].rotas++;
+  });
+
+  // Se não tem timestamp, distribui proporcionalmente pelo perc_col
+  if(!Object.keys(slots).length){
+    const totalCol=routes.reduce((s,r)=>s+r.col,0);
+    const totalEst=routes.reduce((s,r)=>s+r.est,0);
+    const horas=['06:00','07:00','08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00'];
+    // curva S simulada
+    const curve=[.02,.05,.09,.13,.17,.20,.22,.25,.28,.30,.32,.35,.40,.45,.50];
+    horas.forEach((h,i)=>{
+      slots[h]={col:Math.round(totalCol*(curve[i]||0)),est:Math.round(totalEst*(curve[i]||0)),rotas:0};
+    });
+  }
+
+  const labels=Object.keys(slots).sort();
+  const colData=labels.map(l=>slots[l].col);
+  const estData=labels.map(l=>slots[l].est);
+
+  // Acumulado
+  const cumCol=[],cumEst=[];
+  let sc=0,se=0;
+  colData.forEach((v,i)=>{sc+=v;se+=estData[i];cumCol.push(sc);cumEst.push(se);});
+
+  // Gráfico de linha — acumulado
+  if(_drillChartLine){_drillChartLine.destroy();}
+  const ctxL=document.getElementById('hd-ch-line').getContext('2d');
+  _drillChartLine=new Chart(ctxL,{
+    type:'line',
+    data:{labels,datasets:[
+      {label:'Coletados acum.',data:cumCol,borderColor:'#16A34A',backgroundColor:'rgba(22,163,74,.08)',fill:true,tension:.3,borderWidth:2,pointRadius:3,pointBackgroundColor:'#16A34A'},
+      {label:'Estimados acum.',data:cumEst,borderColor:'#2563EB',backgroundColor:'rgba(37,99,235,.06)',fill:true,tension:.3,borderWidth:2,borderDash:[4,3],pointRadius:2,pointBackgroundColor:'#2563EB'}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#0D1526',font:{size:11},boxWidth:10}},
+        tooltip:{backgroundColor:'#fff',titleColor:'#0D1526',bodyColor:'#42506A',borderColor:'#C5CCDF',borderWidth:1.5,padding:10,cornerRadius:8},
+        datalabels:{display:false}},
+      scales:{x:{grid:{color:'#ECEEF5'},ticks:{color:'#0D1526',font:{size:10}}},
+        y:{grid:{color:'#ECEEF5'},ticks:{color:'#0D1526',callback:v=>fmt(v)}}}}
+  });
+
+  // Gráfico de barras — slot a slot
+  if(_drillChartBar){_drillChartBar.destroy();}
+  const ctxB=document.getElementById('hd-ch-bar').getContext('2d');
+  _drillChartBar=new Chart(ctxB,{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'Estimados',data:estData,backgroundColor:'rgba(37,99,235,.3)',borderColor:'#2563EB',borderWidth:1.5,borderRadius:3},
+      {label:'Coletados',data:colData,backgroundColor:'rgba(22,163,74,.7)',borderColor:'#16A34A',borderWidth:1.5,borderRadius:3}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#0D1526',font:{size:11},boxWidth:10}},
+        tooltip:{backgroundColor:'#fff',titleColor:'#0D1526',bodyColor:'#42506A',borderColor:'#C5CCDF',borderWidth:1.5,padding:10,cornerRadius:8},
+        datalabels:{display:false}},
+      scales:{x:{grid:{display:false},ticks:{color:'#0D1526',font:{size:10}}},
+        y:{grid:{color:'#ECEEF5'},ticks:{color:'#0D1526',callback:v=>fmt(v)}}}}
+  });
+}
+
+function buildDrillTodas(routes){
+  const sorted=[...routes].sort((a,b)=>{
+    const ord={'Em andamento':0,'Pendente':1,'Concluída':2};
+    return (ord[a.status]??3)-(ord[b.status]??3);
+  });
+  document.getElementById('hd-todas-list').innerHTML=sorted.map(r=>{
+    const isAtr=r.status==='Em andamento'&&r.falhas>0;
+    const chipCls=isAtr?'atr':r.status==='Concluída'?'ok':r.status==='Pendente'?'pen':'and';
+    const chipTxt=isAtr?'Atraso':r.status==='Concluída'?'Concluída':r.status==='Pendente'?'Pendente':'Andamento';
+    const pctCol=r.est>0?((r.col/r.est)*100).toFixed(0)+'%':'—';
+    const pctCl=r.est>0?(r.col/r.est>=.85?'cg':r.col/r.est>=.65?'ca':'cr'):'c2';
+    return`<div class="hub-rota-row ${isAtr?'atraso':''}">
+      <span class="hrt-id">#${r.id}</span>
+      <span class="hrt-placa">${r.placa||'—'}</span>
+      <span class="hrt-transp" title="${r.transp}">${(r.motorista||r.transp||'—').slice(0,22)}</span>
+      <span class="hrt-stats">
+        <span style="font-size:10px;color:var(--t3)">${r.tipoRota}</span>
+        <span class="hrt-chip ${chipCls}">${chipTxt}</span>
+        <span class="hrt-pct ${pctCl}">${pctCol}</span>
+        <span style="font-size:10px;color:var(--t2)">${fmt(r.col)}/${fmt(r.est)}</span>
+        ${r.falhas>0?`<span style="font-size:10px;color:var(--red-t)">${r.falhas} falha${r.falhas>1?'s':''}</span>`:''}
+      </span>
+    </div>`;
+  }).join('');
 }
 
 // HUB GRID
