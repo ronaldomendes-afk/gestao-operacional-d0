@@ -447,6 +447,16 @@ td{padding:9px 12px;vertical-align:middle;white-space:nowrap;font-weight:500}
 .hub-drill-tabs{display:flex;gap:3px;background:var(--s3);border:1px solid var(--bd);border-radius:8px;padding:3px;width:fit-content;margin-bottom:10px}
 .hdt{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;padding:4px 12px;border-radius:6px;border:none;background:transparent;color:var(--t3);cursor:pointer;transition:all .15s}
 .hdt.on{background:var(--s1);color:var(--t1);box-shadow:0 1px 3px rgba(13,21,38,.08)}
+
+.drill-filters{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.drill-filter-btn{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;border:1.5px solid var(--bd);background:var(--s2);color:var(--t2);cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:4px}
+.drill-filter-btn:hover{border-color:var(--bd2);background:var(--s3);color:var(--t1)}
+.drill-filter-btn.on{background:var(--blu-bg);color:var(--blu-t);border-color:var(--blu-bd)}
+.drill-filter-btn.on.f-atr{background:var(--red-bg);color:var(--red-t);border-color:var(--red-bd)}
+.drill-filter-btn.on.f-and{background:var(--blu-bg);color:var(--blu-t);border-color:var(--blu-bd)}
+.drill-filter-btn.on.f-pen{background:var(--amb-bg);color:var(--amb-t);border-color:var(--amb-bd)}
+.drill-filter-btn.on.f-ok{background:var(--grn-bg);color:var(--grn-t);border-color:var(--grn-bd)}
+.drill-count{font-size:10px;color:var(--t3);margin-left:4px}
 </style>
 <!-- cache-bust:20260610 -->
 </head>
@@ -590,6 +600,14 @@ td{padding:9px 12px;vertical-align:middle;white-space:nowrap;font-weight:500}
       </div>
       <!-- tab: rotas em atraso -->
       <div id="hdt-rotas">
+        <div class="drill-filters" id="hd-rotas-filters">
+          <span style="font-size:11px;font-weight:600;color:var(--t2)">Filtrar:</span>
+          <button class="drill-filter-btn f-atr on" onclick="setDrillFilter('rotas','atraso',this)">🔴 Atraso <span class="drill-count" id="cnt-atraso"></span></button>
+          <button class="drill-filter-btn f-and" onclick="setDrillFilter('rotas','andamento',this)">🔵 Andamento <span class="drill-count" id="cnt-andamento"></span></button>
+          <button class="drill-filter-btn f-pen" onclick="setDrillFilter('rotas','pendente',this)">🟡 Pendente <span class="drill-count" id="cnt-pendente"></span></button>
+          <button class="drill-filter-btn f-ok" onclick="setDrillFilter('rotas','concluida',this)">🟢 Concluída <span class="drill-count" id="cnt-concluida"></span></button>
+          <button class="drill-filter-btn" onclick="setDrillFilter('rotas','todas',this)">📋 Todas <span class="drill-count" id="cnt-todas"></span></button>
+        </div>
         <div class="hub-atraso-list" id="hd-rotas-list"></div>
       </div>
       <!-- tab: timeline -->
@@ -1809,15 +1827,62 @@ function switchDrillTab(btn, tabId){
   });
 }
 
+let _drillRoutes=[];
+let _drillFilterRotas='atraso';
+
 function buildDrillRotas(routes, hubName){
-  const atr=routes.filter(r=>r.status==='Em andamento'&&r.falhas>0)
-                  .sort((a,b)=>b.falhas-a.falhas);
-  const and_sem=routes.filter(r=>r.status==='Em andamento'&&r.falhas===0);
-  const pend=routes.filter(r=>r.status==='Pendente');
-  const rows=[...atr,...and_sem,...pend];
+  _drillRoutes=routes;
+  _drillFilterRotas='atraso';
+  // reseta botões
+  document.querySelectorAll('#hd-rotas-filters .drill-filter-btn').forEach(b=>b.classList.remove('on'));
+  const firstBtn=document.querySelector('#hd-rotas-filters .drill-filter-btn');
+  if(firstBtn) firstBtn.classList.add('on');
+  // atualiza contadores
+  updateDrillCounts(routes);
+  renderDrillRotas();
+}
+
+function updateDrillCounts(routes){
+  const atr=routes.filter(r=>r.status==='Em andamento'&&r.falhas>0).length;
+  const and_=routes.filter(r=>r.status==='Em andamento'&&r.falhas===0).length;
+  const pen=routes.filter(r=>r.status==='Pendente').length;
+  const ok=routes.filter(r=>r.status==='Concluída').length;
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent='('+v+')';};
+  set('cnt-atraso',atr);
+  set('cnt-andamento',and_);
+  set('cnt-pendente',pen);
+  set('cnt-concluida',ok);
+  set('cnt-todas',routes.length);
+}
+
+function setDrillFilter(tab, filter, btn){
+  _drillFilterRotas=filter;
+  document.querySelectorAll('#hd-rotas-filters .drill-filter-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  renderDrillRotas();
+}
+
+function renderDrillRotas(){
+  const routes=_drillRoutes;
+  let rows;
+  if(_drillFilterRotas==='atraso')
+    rows=routes.filter(r=>r.status==='Em andamento'&&r.falhas>0).sort((a,b)=>b.falhas-a.falhas);
+  else if(_drillFilterRotas==='andamento')
+    rows=routes.filter(r=>r.status==='Em andamento').sort((a,b)=>b.falhas-a.falhas);
+  else if(_drillFilterRotas==='pendente')
+    rows=routes.filter(r=>r.status==='Pendente');
+  else if(_drillFilterRotas==='concluida')
+    rows=routes.filter(r=>r.status==='Concluída').sort((a,b)=>b.col-a.col);
+  else
+    rows=[...routes].sort((a,b)=>{
+      const ord={'Em andamento':0,'Pendente':1,'Concluída':2};
+      return (ord[a.status]??3)-(ord[b.status]??3);
+    });
 
   if(!rows.length){
-    document.getElementById('hd-rotas-list').innerHTML='<div style="padding:16px;text-align:center;color:var(--grn-t);font-weight:600">✓ Nenhuma rota em atraso ou pendente</div>';
+    const msgs={atraso:'✓ Nenhuma rota em atraso',andamento:'Nenhuma rota em andamento',pendente:'Nenhuma rota pendente',concluida:'Nenhuma rota concluída',todas:'Sem rotas para exibir'};
+    const isGood=_drillFilterRotas==='atraso'||_drillFilterRotas==='pendente';
+    document.getElementById('hd-rotas-list').innerHTML=`<div style="padding:16px;text-align:center;color:${isGood?'var(--grn-t)':'var(--t3)'};font-weight:600">${msgs[_drillFilterRotas]||'—'}</div>`;
     return;
   }
 
@@ -1831,13 +1896,13 @@ function buildDrillRotas(routes, hubName){
     return`<div class="hub-rota-row ${isAtr?'atraso':''}">
       <span class="hrt-id">#${r.id}</span>
       <span class="hrt-placa">${r.placa||'—'}</span>
-      <span class="hrt-transp" title="${r.transp}">${r.transp||'—'}</span>
+      <span class="hrt-transp" title="${r.transp||r.motorista}">${(r.motorista||r.transp||'—').slice(0,22)}</span>
       <span class="hrt-stats">
         <span style="font-size:10px;color:var(--t3)">${r.tipoRota}</span>
         <span class="hrt-chip ${chipCls}">${chipTxt}</span>
         <span class="hrt-pct ${pctCl}">${pctCol}</span>
         <span style="font-size:10px;color:var(--t2)">${fmt(r.col)}/${fmt(r.est)}</span>
-        ${isAtr?`<span style="font-size:10px;color:var(--red-t)">${r.falhas} falha${r.falhas>1?'s':''}</span>`:''}
+        ${r.falhas>0?`<span style="font-size:10px;color:var(--red-t)">${r.falhas} falha${r.falhas>1?'s':''}</span>`:''}
       </span>
     </div>`;
   }).join('');
